@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database'; // Realtime DB
 import { getFirestore } from 'firebase/firestore'; // Firestore
+import { getAuth } from 'firebase/auth';
 
 // You can find these values in your Firebase Console:
 // 1. Go to Project Overview -> Project Settings (gear icon in the top left)
@@ -22,3 +23,4 @@ const app = initializeApp(firebaseConfig);
 // Depending on if you stick with Firestore (like your py script) or RealtimeDB, both fallbacks are cleanly linked globally
 export const realtimeDb = getDatabase(app);
 export const firestoreDb = getFirestore(app);
+export const auth = getAuth(app);

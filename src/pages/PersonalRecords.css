@@ -107,16 +107,47 @@
 }
 
 .hof-card {
+  position: relative;
   padding: 20px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, transform 0.2s ease;
 }
 
 .hof-card:hover {
   background: rgba(255,255,255,0.04);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Clickable-card affordance (applies to champions + hof) */
+.pr-card-clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.pr-card-clickable:hover {
+  transform: scale(1.02);
+}
+
+.pr-card-clickable:focus-visible {
+  outline: 2px solid var(--accent-pink-main);
+  outline-offset: 2px;
+}
+
+.pr-card-link-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: var(--text-muted);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  pointer-events: none;
+}
+
+.pr-card-clickable:hover .pr-card-link-icon {
+  opacity: 0.9;
+  color: var(--accent-pink-main);
 }
 
 .pr-stat {

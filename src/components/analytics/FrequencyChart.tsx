@@ -4,17 +4,29 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Card } from '../common/Card';
-import { getWeeklyFrequency } from '../../utils/workoutUtils';
+import { getWeeklyFrequency, fillWeeklyGaps } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
   workouts: TaggedWorkout[];
+  fillGaps?: boolean;
+  rangeStart?: Date | null;
+  rangeEnd?: Date | null;
 }
 
 const CYAN = '#00F0FF';
 
-export const FrequencyChart: React.FC<Props> = ({ workouts }) => {
-  const chartData = useMemo(() => getWeeklyFrequency(workouts), [workouts]);
+export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, rangeStart, rangeEnd }) => {
+  const chartData = useMemo(() => {
+    const base = getWeeklyFrequency(workouts);
+    if (!fillGaps) return base;
+    return fillWeeklyGaps(
+      base,
+      (weekKey, label) => ({ weekKey, label, workoutCount: 0 }),
+      rangeStart,
+      rangeEnd,
+    );
+  }, [workouts, fillGaps, rangeStart, rangeEnd]);
 
   const avgFrequency = useMemo(() => {
     if (chartData.length === 0) return 0;

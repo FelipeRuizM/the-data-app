@@ -3,14 +3,23 @@ import type { WorkoutSet } from '../utils/csvParser';
 import { parse } from 'date-fns';
 import { realtimeDb } from '../config/firebase';
 import { ref, onValue } from 'firebase/database';
+import { useAuth } from '../context/AuthContext';
 
 export type TaggedWorkout = WorkoutSet & { id: string, category?: string };
 
 export const useWorkouts = () => {
+  const { user } = useAuth();
+  const uid = user?.uid;
   const [workouts, setWorkouts] = useState<TaggedWorkout[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!uid) {
+      setWorkouts([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     const BODYWEIGHT_EXERCISES = ['Pull Up', 'Chin Up', 'Dip', 'Push Up', 'Muscle Up'];
 
     const parseDataToFlat = (data: any): TaggedWorkout[] => {
@@ -39,7 +48,7 @@ export const useWorkouts = () => {
           const isBodyweight = BODYWEIGHT_EXERCISES.includes(rootTitle);
 
           ex.sets.forEach((s: any) => {
-            let finalWeight = s.weight_kg || 0;
+            let finalWeight = Number(s.weight_kg) || 0;
             if (isBodyweight) finalWeight += bodyweightAddition;
 
             flatData.push({
@@ -55,7 +64,7 @@ export const useWorkouts = () => {
               setIndex: s.set_index || 0,
               setType: s.set_type || 'normal',
               weightKg: finalWeight,
-              reps: s.reps || 0,
+              reps: Number(s.reps) || 0,
               distanceKm: 0,
               durationSeconds: s.duration_seconds || 0,
               rpe: 0
@@ -67,8 +76,9 @@ export const useWorkouts = () => {
       return flatData;
     };
 
-    const workoutsRef = ref(realtimeDb, '/');
-    console.log('[DB] Subscribing to Realtime Database (/)');
+    const path = `/users/${uid}/workouts`;
+    const workoutsRef = ref(realtimeDb, path);
+    console.log(`[DB] Subscribing to Realtime Database (${path})`);
     const unsubscribe = onValue(workoutsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -77,6 +87,7 @@ export const useWorkouts = () => {
         setWorkouts(flat);
       } else {
         console.log('[DB] Fetch returned empty snapshot');
+        setWorkouts([]);
       }
       setLoading(false);
     }, (error) => {
@@ -85,7 +96,7 @@ export const useWorkouts = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [uid]);
 
   return { workouts, loading };
 };

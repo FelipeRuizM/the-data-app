@@ -1,4 +1,4 @@
-import { startOfWeek, format } from 'date-fns';
+import { startOfWeek, format, addWeeks, parseISO } from 'date-fns';
 import type { WorkoutSet } from './csvParser';
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
@@ -165,6 +165,48 @@ function getWeekLabel(date: Date): string {
   return format(startOfWeek(date, { weekStartsOn: 1 }), 'MMM dd');
 }
 
+/**
+ * Pads a sparse weekly series so that every calendar week between the first
+ * and last visible week is represented — even weeks with no activity show up
+ * as a zero-valued entry.
+ *
+ * - `rangeStart` / `rangeEnd` override the bounds; otherwise we infer from
+ *   the data itself. Both get snapped to the Monday of their ISO week.
+ * - `zero` builds the empty-week entry (recharts needs a complete row, not
+ *   a null).
+ */
+export function fillWeeklyGaps<T extends { weekKey: string; label: string }>(
+  points: T[],
+  zero: (weekKey: string, label: string) => T,
+  rangeStart?: Date | null,
+  rangeEnd?: Date | null,
+): T[] {
+  const weekOpts = { weekStartsOn: 1 as const };
+
+  const dataStart = points.length > 0 ? parseISO(points[0].weekKey) : null;
+  const dataEnd   = points.length > 0 ? parseISO(points[points.length - 1].weekKey) : null;
+
+  const start = rangeStart ? startOfWeek(rangeStart, weekOpts) : dataStart;
+  const end   = rangeEnd   ? startOfWeek(rangeEnd,   weekOpts) : dataEnd;
+
+  if (!start || !end || start.getTime() > end.getTime()) return points;
+
+  const existing = new Map(points.map(p => [p.weekKey, p]));
+  const result: T[] = [];
+
+  let cursor = start;
+  // Safety cap: never emit more than ~10 years of weeks
+  let guard = 600;
+  while (cursor.getTime() <= end.getTime() && guard-- > 0) {
+    const key = format(cursor, 'yyyy-MM-dd');
+    const label = format(cursor, 'MMM dd');
+    result.push(existing.get(key) ?? zero(key, label));
+    cursor = addWeeks(cursor, 1);
+  }
+
+  return result;
+}
+
 // ─── Weekly Volume ────────────────────────────────────────────────────────────
 
 export interface WeeklyVolumePoint {
@@ -260,6 +302,49 @@ export function getVolumeByMuscleGroup(workouts: WorkoutSet[]): MuscleGroupPoint
   return Array.from(map.values())
     .sort((a, b) => b.volumeKg - a.volumeKg)
     .filter(r => r.sets > 0);
+}
+
+// ─── Per-Workout Volume ───────────────────────────────────────────────────────
+
+export interface WorkoutVolumePoint {
+  workoutId: string;
+  date: Date;
+  label: string;      // short "MMM d" for x-axis ticks
+  fullLabel: string;  // "MMM d, yyyy" for tooltips
+  volumeKg: number;
+  sets: number;
+}
+
+/**
+ * Aggregates total volume per individual workout session, ordered chronologically.
+ * Ideal for exercise-isolated views — one point per workout the exercise appeared in.
+ */
+export function getVolumePerWorkout(
+  workouts: (WorkoutSet & { id: string })[],
+): WorkoutVolumePoint[] {
+  const map = new Map<string, WorkoutVolumePoint>();
+
+  workouts.forEach(w => {
+    const existing = map.get(w.id) ?? {
+      workoutId: w.id,
+      date: w.startTime,
+      label: format(w.startTime, 'MMM d'),
+      fullLabel: format(w.startTime, 'MMM d, yyyy'),
+      volumeKg: 0,
+      sets: 0,
+    };
+    existing.volumeKg += w.weightKg * w.reps;
+    existing.sets += 1;
+    // Keep the earliest startTime as the canonical workout date
+    if (w.startTime < existing.date) {
+      existing.date = w.startTime;
+      existing.label = format(w.startTime, 'MMM d');
+      existing.fullLabel = format(w.startTime, 'MMM d, yyyy');
+    }
+    map.set(w.id, existing);
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 // ─── Dynamic Weekly Metric ────────────────────────────────────────────────────

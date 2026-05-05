@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Trophy, Flame } from 'lucide-react';
+import { Trophy, Flame, LineChart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { calculatePRs, REP_BASED_EXERCISES, type PRData } from '../utils/prEngine';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
@@ -7,6 +8,7 @@ import './PersonalRecords.css';
 
 export const PersonalRecords: React.FC<any> = ({ workouts }) => {
   const { unit } = useSettings();
+  const navigate = useNavigate();
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
   const prs = useMemo(() => calculatePRs(workouts), [workouts]);
@@ -48,9 +50,30 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
 
     const hasRecord = repBased ? pr.maxReps > 0 : displayWeight > 0;
 
+    const handleClick = () => {
+      const params = new URLSearchParams({
+        exercise: pr.exerciseTitle,
+        timeframe: 'all',
+      });
+      navigate(`/analytics?${params.toString()}`);
+    };
+
     return (
-      <div key={pr.exerciseTitle} className={cardClass}>
+      <div
+        key={pr.exerciseTitle}
+        className={`${cardClass} pr-card-clickable`}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+      >
         {isChampion && <div className="champion-glow" />}
+        <LineChart size={isChampion ? 18 : 14} className="pr-card-link-icon" />
         <h3 style={{ fontSize: isChampion ? '24px' : '18px', margin: '0 0 16px 0', fontFamily: 'Outfit' }}>
           {pr.exerciseTitle}
         </h3>

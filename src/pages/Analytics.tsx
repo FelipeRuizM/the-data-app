@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { subDays, subYears } from 'date-fns';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { DynamicMetricChart } from '../components/analytics/DynamicMetricChart';
 import { FrequencyChart } from '../components/analytics/FrequencyChart';
 import { TopExercisesChart } from '../components/analytics/TopExercisesChart';
+import { VolumeProgressionChart } from '../components/analytics/VolumeProgressionChart';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
 import { MuscleChart } from '../components/dashboard/MuscleChart';
 import { useSettings } from '../context/SettingsContext';
@@ -108,6 +110,7 @@ const ExercisePicker: React.FC<{
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export const Analytics: React.FC<Props> = ({ workouts }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [timeRange, setTimeRange]   = useState<TimeRange>('90d');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters]       = useState<ChartFilters>({
@@ -123,12 +126,49 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     return Array.from(s).sort();
   }, [workouts]);
 
+  // ── Catch incoming deep-links from Trophy Room ───────────────────────────
+  // e.g. /analytics?exercise=Bench+Press&timeframe=all
+  useEffect(() => {
+    const incomingExercise  = searchParams.get('exercise');
+    const incomingTimeframe = searchParams.get('timeframe');
+    if (!incomingExercise && !incomingTimeframe) return;
+
+    if (incomingTimeframe) {
+      const normalized = incomingTimeframe.toLowerCase();
+      const match = TIME_RANGES.find(t => t.key.toLowerCase() === normalized);
+      if (match) setTimeRange(match.key);
+    }
+
+    if (incomingExercise) {
+      // Try to match against the actual exercise catalog so the chart picker
+      // (which compares titles strictly) locks onto a real entry.
+      const exactMatch =
+        uniqueExercises.find(e => e.toLowerCase() === incomingExercise.toLowerCase()) ??
+        uniqueExercises.find(e => e.toLowerCase().includes(incomingExercise.toLowerCase())) ??
+        incomingExercise;
+
+      setFilters(f => ({ ...f, exercise: exactMatch, muscleGroup: '' }));
+      setFiltersOpen(true);
+    }
+
+    // Consume the params so a later manual filter change / refresh doesn't
+    // keep re-applying them.
+    const next = new URLSearchParams(searchParams);
+    next.delete('exercise');
+    next.delete('timeframe');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, uniqueExercises, setSearchParams]);
+
   // ── Date-filtered slice ──────────────────────────────────────────────────
+  const rangeStart = useMemo(() => getDateCutoff(timeRange), [timeRange]);
+  // Stable "now" — only refreshes when the time range changes, so charts don't
+  // recompute on every parent re-render.
+  const rangeEnd   = useMemo(() => new Date(), [timeRange]);
+
   const dateFiltered = useMemo(() => {
-    const cutoff = getDateCutoff(timeRange);
-    if (!cutoff) return workouts;
-    return workouts.filter(w => w.startTime >= cutoff);
-  }, [workouts, timeRange]);
+    if (!rangeStart) return workouts;
+    return workouts.filter(w => w.startTime >= rangeStart);
+  }, [workouts, rangeStart]);
 
   // ── Fully filtered slice (date + advanced) ───────────────────────────────
   const filteredWorkouts = useMemo(
@@ -280,16 +320,33 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         </div>
       </div>
 
-      {/* ── Calendar + Muscle Split ─────────────────────────────── */}
-      <div className="analytics-calendar-row">
-        <WorkoutCalendar workouts={workouts} />
-        <MuscleChart workouts={filteredWorkouts} />
-      </div>
+      {/* ── Calendar + Muscle Split (hidden when isolating a single exercise) ── */}
+      {!filters.exercise && (
+        <div className="analytics-calendar-row">
+          <WorkoutCalendar workouts={workouts} />
+          <MuscleChart workouts={filteredWorkouts} />
+        </div>
+      )}
 
       {/* ── Charts Grid ────────────────────────────────────────── */}
+      {/* Fill empty weeks only in the global view — when isolating a single  */}
+      {/* exercise we'd otherwise swamp the chart with zero weeks.            */}
       <div className="analytics-charts-grid">
-        <DynamicMetricChart workouts={filteredWorkouts} />
-        <FrequencyChart workouts={filteredWorkouts} />
+        <DynamicMetricChart
+          workouts={filteredWorkouts}
+          fillGaps={!filters.exercise}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+        />
+        <FrequencyChart
+          workouts={filteredWorkouts}
+          fillGaps={!filters.exercise}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+        />
+        <div className="analytics-charts-full">
+          <VolumeProgressionChart workouts={filteredWorkouts} exerciseFocus={filters.exercise || undefined} />
+        </div>
         <div className="analytics-charts-full">
           <TopExercisesChart workouts={filteredWorkouts} />
         </div>

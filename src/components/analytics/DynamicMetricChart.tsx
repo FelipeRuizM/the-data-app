@@ -5,11 +5,14 @@ import {
 } from 'recharts';
 import { Card } from '../common/Card';
 import { useSettings } from '../../context/SettingsContext';
-import { getWeeklyMetric, type MetricType } from '../../utils/workoutUtils';
+import { getWeeklyMetric, fillWeeklyGaps, type MetricType } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
   workouts: TaggedWorkout[];
+  fillGaps?: boolean;
+  rangeStart?: Date | null;
+  rangeEnd?: Date | null;
 }
 
 // ── Metric configuration ────────────────────────────────────────────────────
@@ -52,14 +55,23 @@ function tooltipFormatter(value: unknown, metric: MetricType, unit: string): [st
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export const DynamicMetricChart: React.FC<Props> = ({ workouts }) => {
+export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false, rangeStart, rangeEnd }) => {
   const { unit } = useSettings();
   const [metric, setMetric] = useState<MetricType>('volume');
 
   const cfg = METRICS.find(m => m.key === metric)!;
 
   // Base weekly aggregation — recomputes only when workouts or metric changes
-  const weeklyBase = useMemo(() => getWeeklyMetric(workouts, metric), [workouts, metric]);
+  const weeklyBase = useMemo(() => {
+    const base = getWeeklyMetric(workouts, metric);
+    if (!fillGaps) return base;
+    return fillWeeklyGaps(
+      base,
+      (weekKey, label) => ({ weekKey, label, value: 0 }),
+      rangeStart,
+      rangeEnd,
+    );
+  }, [workouts, metric, fillGaps, rangeStart, rangeEnd]);
 
   // Apply kg→lbs conversion for volume only
   const displayData = useMemo(() => {

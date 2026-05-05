@@ -5,22 +5,24 @@ import { Settings } from './pages/Settings';
 import { Workouts } from './pages/Workouts';
 import { PersonalRecords } from './pages/PersonalRecords';
 import { Analytics } from './pages/Analytics';
+import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
+import { useAuth } from './context/AuthContext';
 import './App.css';
 
-function App() {
+const LoadingScreen = ({ label }: { label: string }) => (
+  <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+    <div style={{ fontFamily: 'Outfit', fontSize: '24px', letterSpacing: '4px', background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'pulse 1.5s infinite', opacity: 0.8 }}>
+      HEVY
+    </div>
+    <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>{label}</p>
+  </div>
+);
+
+function AuthedApp() {
   const { workouts, loading } = useWorkouts();
 
-  if (loading) {
-    return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          <div style={{ fontFamily: 'Outfit', fontSize: '24px', letterSpacing: '4px', background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'pulse 1.5s infinite', opacity: 0.8 }}>
-            HEVY
-          </div>
-          <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>Synching Backend...</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen label="Synching Backend..." />;
 
   return (
     <Routes>
@@ -33,6 +35,15 @@ function App() {
       </Route>
     </Routes>
   );
+}
+
+function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <LoadingScreen label="Loading..." />;
+  if (!user) return <Login />;
+
+  return <AuthedApp />;
 }
 
 export default App;

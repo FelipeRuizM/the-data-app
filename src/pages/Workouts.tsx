@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { ref, update, push } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
+import { useAuth } from '../context/AuthContext';
 
 // ── Logger types ──────────────────────────────────────────────
 interface LogSet {
@@ -79,16 +80,18 @@ const getSetColor = (type: LogSet['setType']) =>
 
 // ── WorkoutCard (historical sessions) ────────────────────────
 const WorkoutCard = ({ session, unit }: any) => {
+  const { user } = useAuth();
+  const uid = user?.uid;
   const [isOpen, setIsOpen] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
   const handleCategoryChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCategory = e.target.value;
-    if (!session.id) return;
+    if (!session.id || !uid) return;
     try {
       console.log(`[DB] Updating category for workout ${session.id} → "${newCategory}"`);
-      await update(ref(realtimeDb, `/${session.id}`), { category: newCategory });
+      await update(ref(realtimeDb, `/users/${uid}/workouts/${session.id}`), { category: newCategory });
       console.log(`[DB] Category updated successfully for workout ${session.id}`);
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
@@ -198,6 +201,8 @@ const WorkoutCard = ({ session, unit }: any) => {
 // ── Workouts page ─────────────────────────────────────────────
 export const Workouts: React.FC<any> = ({ workouts }) => {
   const { unit } = useSettings();
+  const { user } = useAuth();
+  const uid = user?.uid;
 
   // ── Historical sessions ──
   const sessions = useMemo(() => {
@@ -301,7 +306,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
   // ── Save to Realtime DB ──
   const saveWorkout = async () => {
-    if (logExercises.length === 0) return;
+    if (logExercises.length === 0 || !uid) return;
     setIsSaving(true);
     const startTime = new Date(logDateTime);
     const endTime   = new Date(startTime.getTime() + logDuration * 60000);
@@ -330,7 +335,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
       const exerciseCount = logExercises.length;
       const setCount = logExercises.reduce((n, ex) => n + ex.sets.length, 0);
       console.log(`[DB] Pushing new workout "${logTitle}" (${exerciseCount} exercises, ${setCount} sets)`);
-      const newRef = await push(ref(realtimeDb, '/'), payload);
+      const newRef = await push(ref(realtimeDb, `/users/${uid}/workouts`), payload);
       console.log(`[DB] Workout saved successfully with key: ${newRef.key}`);
       setLogTitle('Workout');
       setLogDuration(60);

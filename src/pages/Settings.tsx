@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 export const Settings: React.FC = () => {
   const { unit, toggleUnit } = useSettings();
+  const { user, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('Sign out failed:', err);
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div style={{ padding: '0 32px', animation: 'fadeIn 0.5s ease-out' }}>
       <h2 style={{ marginBottom: '24px', letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>Settings</h2>
-      
+
       <Card style={{ maxWidth: '600px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -17,8 +31,8 @@ export const Settings: React.FC = () => {
               Choose your preferred unit for globally tracking volume metrics and lifts.
             </p>
           </div>
-          
-          <div 
+
+          <div
             onClick={toggleUnit}
             style={{
               width: '64px',
@@ -47,6 +61,32 @@ export const Settings: React.FC = () => {
           <span style={{ color: unit === 'kg' ? 'var(--accent-pink-main)' : 'var(--text-secondary)', transition: 'color 0.3s ease' }}>Metric (KG)</span>
           <span style={{ color: unit === 'lbs' ? 'var(--accent-pink-main)' : 'var(--text-secondary)', transition: 'color 0.3s ease' }}>Imperial (LBS)</span>
         </div>
+      </Card>
+
+      <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
+        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontFamily: 'Outfit' }}>Account</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
+          Signed in as <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{user?.email ?? 'unknown'}</span>
+        </p>
+        <button
+          onClick={handleSignOut}
+          disabled={signingOut}
+          style={{
+            padding: '10px 20px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#fca5a5',
+            borderRadius: '10px',
+            fontFamily: 'Outfit',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: signingOut ? 'not-allowed' : 'pointer',
+            opacity: signingOut ? 0.6 : 1,
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {signingOut ? 'Signing out...' : 'Sign Out'}
+        </button>
       </Card>
     </div>
   );
