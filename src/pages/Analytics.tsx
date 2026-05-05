@@ -329,18 +329,16 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       )}
 
       {/* ── Charts Grid ────────────────────────────────────────── */}
-      {/* Fill empty weeks only in the global view — when isolating a single  */}
-      {/* exercise we'd otherwise swamp the chart with zero weeks.            */}
       <div className="analytics-charts-grid">
         <DynamicMetricChart
           workouts={filteredWorkouts}
-          fillGaps={!filters.exercise}
+          fillGaps
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
         <FrequencyChart
           workouts={filteredWorkouts}
-          fillGaps={!filters.exercise}
+          fillGaps
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />

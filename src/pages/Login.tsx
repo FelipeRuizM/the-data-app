@@ -83,14 +83,14 @@ export const Login: React.FC = () => {
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
           <div style={{
             fontFamily: 'Outfit',
-            fontSize: '28px',
-            letterSpacing: '4px',
+            fontSize: '24px',
+            letterSpacing: '2px',
             background: 'var(--accent-gradient)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             fontWeight: 700,
           }}>
-            HEVY
+            WORKOUTS DATA
           </div>
           <p style={{ marginTop: '6px', color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'Inter' }}>
             Sign in to continue

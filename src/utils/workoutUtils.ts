@@ -1,4 +1,4 @@
-import { startOfWeek, format, addWeeks, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, format, addWeeks, parseISO } from 'date-fns';
 import type { WorkoutSet } from './csvParser';
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
@@ -157,12 +157,14 @@ export function getMuscleGroup(exerciseTitle: string): string {
 
 /** Returns the ISO week start (Monday) as a sortable 'yyyy-MM-dd' string. */
 function getWeekKey(date: Date): string {
-  return format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  return format(startOfWeek(date, { weekStartsOn: 0 }), 'yyyy-MM-dd');
 }
 
-/** Display label for a week, e.g. "Jan 06". */
+/** Display label for a week, e.g. "Jan 06 - Jan 12". */
 function getWeekLabel(date: Date): string {
-  return format(startOfWeek(date, { weekStartsOn: 1 }), 'MMM dd');
+  const start = startOfWeek(date, { weekStartsOn: 0 });
+  const end = endOfWeek(date, { weekStartsOn: 0 });
+  return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd')}`;
 }
 
 /**
@@ -181,7 +183,7 @@ export function fillWeeklyGaps<T extends { weekKey: string; label: string }>(
   rangeStart?: Date | null,
   rangeEnd?: Date | null,
 ): T[] {
-  const weekOpts = { weekStartsOn: 1 as const };
+  const weekOpts = { weekStartsOn: 0 as const };
 
   const dataStart = points.length > 0 ? parseISO(points[0].weekKey) : null;
   const dataEnd   = points.length > 0 ? parseISO(points[points.length - 1].weekKey) : null;
@@ -199,7 +201,8 @@ export function fillWeeklyGaps<T extends { weekKey: string; label: string }>(
   let guard = 600;
   while (cursor.getTime() <= end.getTime() && guard-- > 0) {
     const key = format(cursor, 'yyyy-MM-dd');
-    const label = format(cursor, 'MMM dd');
+    const weekEnd = endOfWeek(cursor, weekOpts);
+    const label = `${format(cursor, 'MMM dd')} - ${format(weekEnd, 'MMM dd')}`;
     result.push(existing.get(key) ?? zero(key, label));
     cursor = addWeeks(cursor, 1);
   }

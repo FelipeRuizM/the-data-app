@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, X, Pencil } from 'lucide-react';
 import { ref, update, push } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -78,8 +78,13 @@ const getSetLabel = (sets: LogSet[], idx: number): string => {
 const getSetColor = (type: LogSet['setType']) =>
   SET_TYPES.find(t => t.key === type)?.color ?? 'var(--text-primary)';
 
+// Mirror of useWorkouts.ts — bodyweight is added to weightKg on read for these.
+const BODYWEIGHT_EXERCISES = ['Pull Up', 'Chin Up', 'Dip', 'Push Up', 'Muscle Up'];
+const getBodyweightAddition = (startTime: Date) =>
+  startTime >= new Date('2026-02-01') ? 80 : 73;
+
 // ── WorkoutCard (historical sessions) ────────────────────────
-const WorkoutCard = ({ session, unit }: any) => {
+const WorkoutCard = ({ session, unit, onEdit, isEditing }: any) => {
   const { user } = useAuth();
   const uid = user?.uid;
   const [isOpen, setIsOpen] = useState(false);
@@ -133,7 +138,7 @@ const WorkoutCard = ({ session, unit }: any) => {
             </span>
           </div>
 
-          <div onClick={e => e.stopPropagation()} style={{ marginRight: '80px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ marginRight: '80px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={session.category || 'Mixed'}
               onChange={handleCategoryChange}
@@ -148,6 +153,22 @@ const WorkoutCard = ({ session, unit }: any) => {
                 <option key={c} value={c} style={{ background: 'var(--bg-dark)' }}>{c}</option>
               ))}
             </select>
+            <button
+              onClick={() => onEdit?.(session)}
+              title="Edit workout"
+              style={{
+                width: '34px', height: '34px',
+                background: isEditing ? 'rgba(255,46,147,0.15)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${isEditing ? 'var(--accent-pink-main)' : 'var(--glass-border)'}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: isEditing ? 'var(--accent-pink-main)' : 'var(--text-secondary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Pencil size={14} />
+            </button>
           </div>
         </div>
 
@@ -251,6 +272,57 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
   const [showDropdown, setShowDropdown]     = useState(false);
   const [showToast, setShowToast]           = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
+  const [editingId, setEditingId]           = useState<string | null>(null);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setLogTitle('Workout');
+    setLogDuration(60);
+    setLogCategory('Mixed');
+    setLogExercises([]);
+    setExerciseSearch('');
+    setLogDateTime(freshDateTime());
+  };
+
+  const startEdit = (session: any) => {
+    if (editingId === session.id) {
+      // Toggle off
+      resetForm();
+      setIsExpanded(false);
+      return;
+    }
+    const dispMul = unit === 'lbs' ? 2.20462 : 1;
+    const bwAdd = getBodyweightAddition(session.startTime);
+
+    const exercises: LogExercise[] = Array.from(session.exercises.entries() as Iterable<[string, any[]]>)
+      .map(([exTitle, sets]) => ({
+        exerciseTitle: exTitle,
+        sets: sets
+          .slice()
+          .sort((a, b) => (a.setIndex ?? 0) - (b.setIndex ?? 0))
+          .map((s) => {
+            const isBodyweight = BODYWEIGHT_EXERCISES.includes(exTitle);
+            const rawKg = isBodyweight ? Math.max(0, s.weightKg - bwAdd) : s.weightKg;
+            return {
+              setType: s.setType as LogSet['setType'],
+              weight: Math.round(rawKg * dispMul * 100) / 100,
+              reps: s.reps,
+            };
+          }),
+      }));
+
+    const localDT = format(session.startTime, "yyyy-MM-dd'T'HH:mm");
+    const durMin = Math.max(1, Math.round((session.durSeconds || 60 * 60) / 60));
+
+    setEditingId(session.id);
+    setLogTitle(session.title || 'Workout');
+    setLogDateTime(localDT);
+    setLogDuration(durMin);
+    setLogCategory(session.category || 'Mixed');
+    setLogExercises(exercises);
+    setIsExpanded(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // ── Unique exercise list from dataset ──
   const uniqueExercises = useMemo<string[]>(() => {
@@ -334,16 +406,17 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
     try {
       const exerciseCount = logExercises.length;
       const setCount = logExercises.reduce((n, ex) => n + ex.sets.length, 0);
-      console.log(`[DB] Pushing new workout "${logTitle}" (${exerciseCount} exercises, ${setCount} sets)`);
-      const newRef = await push(ref(realtimeDb, `/users/${uid}/workouts`), payload);
-      console.log(`[DB] Workout saved successfully with key: ${newRef.key}`);
-      setLogTitle('Workout');
-      setLogDuration(60);
-      setLogCategory('Mixed');
-      setLogExercises([]);
-      setExerciseSearch('');
+      if (editingId) {
+        console.log(`[DB] Updating workout ${editingId} "${logTitle}" (${exerciseCount} exercises, ${setCount} sets)`);
+        await update(ref(realtimeDb, `/users/${uid}/workouts/${editingId}`), payload);
+        console.log(`[DB] Workout ${editingId} updated successfully`);
+      } else {
+        console.log(`[DB] Pushing new workout "${logTitle}" (${exerciseCount} exercises, ${setCount} sets)`);
+        const newRef = await push(ref(realtimeDb, `/users/${uid}/workouts`), payload);
+        console.log(`[DB] Workout saved successfully with key: ${newRef.key}`);
+      }
+      resetForm();
       setIsExpanded(false);
-      setLogDateTime(freshDateTime());
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
@@ -394,7 +467,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
               <Plus size={20} color={isExpanded ? 'var(--accent-pink-main)' : '#fff'} style={{ transform: isExpanded ? 'rotate(45deg)' : 'none', transition: 'transform 0.3s ease' }} />
             </div>
             <span style={{ fontFamily: 'Outfit', fontSize: '18px', fontWeight: 600 }}>
-              {isExpanded ? 'Log New Workout' : 'Start Workout'}
+              {editingId ? 'Editing Workout' : isExpanded ? 'Log New Workout' : 'Start Workout'}
             </span>
           </div>
           {isExpanded
@@ -564,22 +637,43 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
               </div>
             )}
 
-            {/* Save button */}
-            <button
-              onClick={saveWorkout}
-              disabled={logExercises.length === 0 || isSaving}
-              style={{
-                width: '100%', padding: '14px',
-                background: logExercises.length === 0 ? 'rgba(255,255,255,0.05)' : 'var(--accent-gradient)',
-                border: 'none', borderRadius: '14px',
-                color: logExercises.length === 0 ? 'var(--text-muted)' : '#fff',
-                fontFamily: 'Outfit', fontSize: '16px', fontWeight: 600,
-                cursor: logExercises.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: isSaving ? 0.6 : 1, transition: 'all 0.2s ease', letterSpacing: '0.02em',
-              }}
-            >
-              {isSaving ? 'Saving...' : 'Save Workout'}
-            </button>
+            {/* Save / Cancel buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {editingId && (
+                <button
+                  onClick={() => { resetForm(); setIsExpanded(false); }}
+                  disabled={isSaving}
+                  style={{
+                    flex: '0 0 auto',
+                    padding: '14px 20px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '14px',
+                    color: 'var(--text-secondary)',
+                    fontFamily: 'Outfit', fontSize: '16px', fontWeight: 600,
+                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isSaving ? 0.6 : 1, transition: 'all 0.2s ease',
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={saveWorkout}
+                disabled={logExercises.length === 0 || isSaving}
+                style={{
+                  flex: 1, padding: '14px',
+                  background: logExercises.length === 0 ? 'rgba(255,255,255,0.05)' : 'var(--accent-gradient)',
+                  border: 'none', borderRadius: '14px',
+                  color: logExercises.length === 0 ? 'var(--text-muted)' : '#fff',
+                  fontFamily: 'Outfit', fontSize: '16px', fontWeight: 600,
+                  cursor: logExercises.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: isSaving ? 0.6 : 1, transition: 'all 0.2s ease', letterSpacing: '0.02em',
+                }}
+              >
+                {isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Save Workout'}
+              </button>
+            </div>
 
           </div>
         )}{/* end expanded form */}
@@ -594,6 +688,8 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
             key={session.startTime.getTime().toString()}
             session={session}
             unit={unit}
+            onEdit={startEdit}
+            isEditing={editingId === session.id}
           />
         ))}
         {sessions.length === 0 && (

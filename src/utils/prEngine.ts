@@ -19,6 +19,9 @@ export const calculatePRs = (workouts: TaggedWorkout[]): PRData[] => {
   const prMap = new Map<string, PRData>();
 
   workouts.forEach(w => {
+    // Failed lifts at 0 reps mean "couldn't lift it" — don't count them as PRs.
+    if (w.setType === 'failure' && w.reps === 0) return;
+
     // w.weightKg already has the bodyweight included if it's a bodyweight exercise
     const entry = prMap.get(w.exerciseTitle) || {
       exerciseTitle: w.exerciseTitle,

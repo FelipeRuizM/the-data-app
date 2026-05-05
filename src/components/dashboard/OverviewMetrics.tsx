@@ -2,7 +2,9 @@ import React, { useMemo } from 'react';
 import { Card } from '../common/Card';
 import { useSettings } from '../../context/SettingsContext';
 import type { WorkoutSet } from '../../utils/csvParser';
-import { startOfISOWeek, subWeeks, format } from 'date-fns';
+import { startOfWeek, subWeeks, format } from 'date-fns';
+
+const WEEK_OPTS = { weekStartsOn: 0 as const };
 
 interface Props {
   workouts: WorkoutSet[];
@@ -37,12 +39,13 @@ export const OverviewMetrics: React.FC<Props> = ({ workouts }) => {
         sets: existing.sets + 1
       });
 
-      // Best bench tracking (independent of individual rep ranges, simply looking for the max single lift weight correctly logged)
-      if (w.exerciseTitle.toLowerCase().includes('bench press')) {
+      // Best bench tracking — exclude failed lifts that didn't complete a rep.
+      const isFailedLift = (w as any).setType === 'failure' && w.reps === 0;
+      if (!isFailedLift && w.exerciseTitle.toLowerCase().includes('bench press')) {
         if (w.weightKg > maxBench) maxBench = w.weightKg;
       }
 
-      weeksSet.add(format(startOfISOWeek(w.startTime), 'yyyy-MM-dd'));
+      weeksSet.add(format(startOfWeek(w.startTime, WEEK_OPTS), 'yyyy-MM-dd'));
       timestamps.push(w.startTime.getTime());
     });
 
@@ -61,7 +64,7 @@ export const OverviewMetrics: React.FC<Props> = ({ workouts }) => {
     // ISO Consistent Weekly Streak Algorithm
     let streak = 0;
     const sortedDates = timestamps.sort((a, b) => b - a);
-    let latestWeekStart = startOfISOWeek(new Date(sortedDates[0]));
+    let latestWeekStart = startOfWeek(new Date(sortedDates[0]), WEEK_OPTS);
     
     while (weeksSet.has(format(latestWeekStart, 'yyyy-MM-dd'))) {
       streak++;

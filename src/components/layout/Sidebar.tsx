@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Activity, BarChart3, Settings as SettingsIcon, Trophy, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { LayoutDashboard, Activity, BarChart3, Settings as SettingsIcon, Trophy, ChevronsLeft, ChevronsRight, Dumbbell } from 'lucide-react';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -24,8 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, isOpen 
       <aside className={`sidebar glass-panel ${isCollapsed ? 'collapsed' : ''} ${isOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-logo">
           {isCollapsed
-            ? <span className="sidebar-logo-icon">H</span>
-            : <h2>Hevy</h2>
+            ? <span className="sidebar-logo-icon"><Dumbbell size={22} /></span>
+            : <h2>Workouts Data</h2>
           }
         </div>
 
