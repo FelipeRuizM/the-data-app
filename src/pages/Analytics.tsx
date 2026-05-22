@@ -9,6 +9,7 @@ import { VolumeProgressionChart } from '../components/analytics/VolumeProgressio
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
 import { MuscleChart } from '../components/dashboard/MuscleChart';
 import { useSettings } from '../context/SettingsContext';
+import { useExercises } from '../context/ExercisesContext';
 import {
   applyChartFilters,
   MUSCLE_GROUPS,
@@ -119,6 +120,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     exercise: '',
   });
   const { unit } = useSettings();
+  const { getMuscleGroup } = useExercises();
 
   // ── Unique exercise list for the picker ──────────────────────────────────
   const uniqueExercises = useMemo<string[]>(() => {
@@ -172,8 +174,8 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
 
   // ── Fully filtered slice (date + advanced) ───────────────────────────────
   const filteredWorkouts = useMemo(
-    () => applyChartFilters(dateFiltered, filters),
-    [dateFiltered, filters],
+    () => applyChartFilters(dateFiltered, filters, getMuscleGroup),
+    [dateFiltered, filters, getMuscleGroup],
   );
 
   // ── Key metrics ──────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card } from '../common/Card';
-import { getMuscleGroup } from '../../utils/workoutUtils';
+import { useExercises } from '../../context/ExercisesContext';
 import type { WorkoutSet } from '../../utils/csvParser';
 
 interface Props {
@@ -18,9 +18,11 @@ const COLORS = [
 ];
 
 export const MuscleChart: React.FC<Props> = ({ workouts }) => {
+  const { getMuscleGroup } = useExercises();
+
   const data = useMemo(() => {
     const groups = new Map<string, number>();
-    
+
     workouts.forEach(w => {
       const group = getMuscleGroup(w.exerciseTitle);
       const current = groups.get(group) || 0;
@@ -29,7 +31,7 @@ export const MuscleChart: React.FC<Props> = ({ workouts }) => {
 
     const result = Array.from(groups.entries()).map(([name, value]) => ({ name, value }));
     return result.sort((a, b) => b.value - a.value).filter(r => r.value > 0);
-  }, [workouts]);
+  }, [workouts, getMuscleGroup]);
 
   if (workouts.length === 0) return null;
 

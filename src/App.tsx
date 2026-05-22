@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -8,6 +9,8 @@ import { Analytics } from './pages/Analytics';
 import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useAuth } from './context/AuthContext';
+import { useExercises } from './context/ExercisesContext';
+import { seedExercisesFromWorkouts } from './utils/exerciseSeed';
 import './App.css';
 
 const LoadingScreen = ({ label }: { label: string }) => (
@@ -20,9 +23,24 @@ const LoadingScreen = ({ label }: { label: string }) => (
 );
 
 function AuthedApp() {
+  const { user } = useAuth();
   const { workouts, loading } = useWorkouts();
+  const { exercises, loading: exercisesLoading } = useExercises();
+  const seedAttempted = useRef(false);
 
-  if (loading) return <LoadingScreen label="Synching Backend..." />;
+  // One-time migration: if the user has workout history but no exercise
+  // library yet, seed the library from the exercise titles in their workouts.
+  useEffect(() => {
+    if (loading || exercisesLoading || seedAttempted.current) return;
+    if (exercises.length > 0) { seedAttempted.current = true; return; }
+    if (!user?.uid || workouts.length === 0) return;
+    seedAttempted.current = true;
+    seedExercisesFromWorkouts(user.uid, workouts).catch(err =>
+      console.error('[DB] Exercise seeding failed:', err),
+    );
+  }, [loading, exercisesLoading, exercises.length, workouts, user]);
+
+  if (loading || exercisesLoading) return <LoadingScreen label="Synching Backend..." />;
 
   return (
     <Routes>

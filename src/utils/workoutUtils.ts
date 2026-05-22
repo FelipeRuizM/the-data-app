@@ -13,10 +13,15 @@ export interface ChartFilters {
 
 export const EMPTY_FILTERS: ChartFilters = { categories: [], muscleGroup: '', exercise: '' };
 
-/** Apply category / muscle / exercise filters to a flat set list. */
+/**
+ * Apply category / muscle / exercise filters to a flat set list.
+ * `getMuscleGroup` resolves an exercise title to its muscle group — supplied by
+ * the caller from the database-backed exercise library.
+ */
 export function applyChartFilters(
   workouts: (WorkoutSet & { id: string; category?: string })[],
   filters: ChartFilters,
+  getMuscleGroup: (exerciseTitle: string) => string,
 ): (WorkoutSet & { id: string; category?: string })[] {
   return workouts.filter(w => {
     if (filters.categories.length > 0) {
@@ -34,124 +39,9 @@ export function applyChartFilters(
 /** All distinct muscle groups (sorted) for use in dropdowns. */
 export const MUSCLE_GROUPS = ['Arms', 'Back', 'Chest', 'Core', 'Legs', 'Other', 'Shoulders'] as const;
 
-// ─── Centralized Muscle Group Mapping ───────────────────────────────────────
-// Matching is done via partial, case-insensitive includes() on exerciseTitle.
-// Order matters: more specific entries should come before general ones.
-
-export const MUSCLE_MAP: Record<string, string> = {
-  // Chest
-  'Incline Bench Press': 'Chest',
-  'Decline Bench Press': 'Chest',
-  'Bench Press': 'Chest',
-  'Incline Press': 'Chest',
-  'Decline Press': 'Chest',
-  'Chest Fly': 'Chest',
-  'Cable Fly': 'Chest',
-  'Pec Deck': 'Chest',
-  'Chest Press': 'Chest',
-  'Push Up': 'Chest',
-  'Dip': 'Chest',
-
-  // Back
-  'Romanian Deadlift': 'Legs', // More legs than back, override before generic Deadlift
-  'Deadlift': 'Back',
-  'Pulldown': 'Back',
-  'Lat Pull': 'Back',
-  'Pull Up': 'Back',
-  'Chin Up': 'Back',
-  'Seated Row': 'Back',
-  'Cable Row': 'Back',
-  'Bent Over Row': 'Back',
-  'Row': 'Back',
-  'Back Extension': 'Back',
-  'Pull Over': 'Back',
-  'Shrug': 'Back',
-  'Rack Pull': 'Back',
-  'Muscle Up': 'Back',
-
-  // Legs
-  'Hack Squat': 'Legs',
-  'Front Squat': 'Legs',
-  'Split Squat': 'Legs',
-  'Bulgarian Split Squat': 'Legs',
-  'Squat': 'Legs',
-  'Leg Press': 'Legs',
-  'Leg Extension': 'Legs',
-  'Leg Curl': 'Legs',
-  'Lying Leg Curl': 'Legs',
-  'Seated Leg Curl': 'Legs',
-  'Hip Thrust': 'Legs',
-  'Glute Bridge': 'Legs',
-  'Hip Abduction': 'Legs',
-  'Hip Adduction': 'Legs',
-  'Adduction': 'Legs',
-  'Abduction': 'Legs',
-  'Calf Raise': 'Legs',
-  'Calf': 'Legs',
-  'Nordic': 'Legs',
-  'Lunge': 'Legs',
-  'Step Up': 'Legs',
-  'Good Morning': 'Legs',
-  'Sissy Squat': 'Legs',
-
-  // Shoulders
-  'Overhead Press': 'Shoulders',
-  'Military Press': 'Shoulders',
-  'Shoulder Press': 'Shoulders',
-  'Arnold Press': 'Shoulders',
-  'Lateral Raise': 'Shoulders',
-  'Front Raise': 'Shoulders',
-  'Reverse Fly': 'Shoulders',
-  'Rear Delt': 'Shoulders',
-  'Upright Row': 'Shoulders',
-  'Face Pull': 'Shoulders', // duplicate intentional – face pull hits rear delt
-
-  // Arms – Biceps
-  'Preacher Curl': 'Arms',
-  'Concentration Curl': 'Arms',
-  'Spider Curl': 'Arms',
-  'Hammer Curl': 'Arms',
-  'Incline Curl': 'Arms',
-  'Bicep Curl': 'Arms',
-  'Biceps Curl': 'Arms',
-  'Cable Curl': 'Arms',
-  'Barbell Curl': 'Arms',
-  'EZ Bar Curl': 'Arms',
-
-  // Arms – Triceps
-  'Skull Crusher': 'Arms',
-  'Triceps Pushdown': 'Arms',
-  'Tricep Pushdown': 'Arms',
-  'Close Grip Bench': 'Arms',
-  'Overhead Tricep Extension': 'Arms',
-  'Overhead Extension': 'Arms',
-  'Triceps': 'Arms',
-  'Tricep': 'Arms',
-  'Wrist Curl': 'Arms',
-  'Close Grip': 'Arms',
-
-  // Core
-  'Cable Crunch': 'Core',
-  'Crunch': 'Core',
-  'Sit Up': 'Core',
-  'Plank': 'Core',
-  'Russian Twist': 'Core',
-  'Leg Raise': 'Core',
-  'Hanging Leg Raise': 'Core',
-  'Toes to Bar': 'Core',
-  'Ab Wheel': 'Core',
-  'Wood Chop': 'Core',
-  'Hyperextension': 'Core',
-  'Ab ': 'Core',
-};
-
-export function getMuscleGroup(exerciseTitle: string): string {
-  const lower = exerciseTitle.toLowerCase();
-  for (const [key, value] of Object.entries(MUSCLE_MAP)) {
-    if (lower.includes(key.toLowerCase())) return value;
-  }
-  return 'Other';
-}
+// NOTE: Exercises and their muscle groups now live in the database (see
+// ExercisesContext). Functions that need a title → muscle-group lookup take a
+// `getMuscleGroup` resolver supplied by the caller.
 
 // ─── Weekly Grouping Helpers ─────────────────────────────────────────────────
 
@@ -291,7 +181,10 @@ export interface MuscleGroupPoint {
   volumeKg: number;
 }
 
-export function getVolumeByMuscleGroup(workouts: WorkoutSet[]): MuscleGroupPoint[] {
+export function getVolumeByMuscleGroup(
+  workouts: WorkoutSet[],
+  getMuscleGroup: (exerciseTitle: string) => string,
+): MuscleGroupPoint[] {
   const map = new Map<string, MuscleGroupPoint>();
 
   workouts.forEach(w => {

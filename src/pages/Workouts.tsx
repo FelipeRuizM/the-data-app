@@ -6,6 +6,8 @@ import { ChevronDown, ChevronUp, Plus, X, Pencil } from 'lucide-react';
 import { ref, update, push } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useExercises } from '../context/ExercisesContext';
+import { MUSCLE_GROUPS } from '../utils/workoutUtils';
 
 // ── Logger types ──────────────────────────────────────────────
 interface LogSet {
@@ -224,6 +226,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
   const { unit } = useSettings();
   const { user } = useAuth();
   const uid = user?.uid;
+  const { exercises: dbExercises, createExercise } = useExercises();
 
   // ── Historical sessions ──
   const sessions = useMemo(() => {
@@ -274,6 +277,11 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
   const [isSaving, setIsSaving]             = useState(false);
   const [editingId, setEditingId]           = useState<string | null>(null);
 
+  // ── New-exercise creation (writes to the exercise library) ──
+  const [newExName, setNewExName]   = useState<string | null>(null);
+  const [newExGroup, setNewExGroup] = useState('Other');
+  const [creatingEx, setCreatingEx] = useState(false);
+
   const resetForm = () => {
     setEditingId(null);
     setLogTitle('Workout');
@@ -281,6 +289,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
     setLogCategory('Mixed');
     setLogExercises([]);
     setExerciseSearch('');
+    setNewExName(null);
     setLogDateTime(freshDateTime());
   };
 
@@ -324,17 +333,28 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── Unique exercise list from dataset ──
-  const uniqueExercises = useMemo<string[]>(() => {
-    const s = new Set<string>(workouts.map((w: any) => w.exerciseTitle as string));
-    return Array.from(s).sort();
-  }, [workouts]);
+  // ── Exercise list from the database-backed library ──
+  const uniqueExercises = useMemo<string[]>(
+    () => dbExercises.map(e => e.name).sort((a, b) => a.localeCompare(b)),
+    [dbExercises],
+  );
 
   const filteredExercises = useMemo<string[]>(() => {
     const q = exerciseSearch.trim().toLowerCase();
     const list = q ? uniqueExercises.filter(e => e.toLowerCase().includes(q)) : uniqueExercises;
     return list.filter(e => !logExercises.some(le => le.exerciseTitle === e));
   }, [uniqueExercises, exerciseSearch, logExercises]);
+
+  // True when the typed name isn't an existing exercise and hasn't been added yet —
+  // lets the user log an exercise they've never done before.
+  const trimmedSearch = exerciseSearch.trim();
+  const canCreateNew = useMemo<boolean>(() => {
+    if (!trimmedSearch) return false;
+    const lower = trimmedSearch.toLowerCase();
+    if (uniqueExercises.some(e => e.toLowerCase() === lower)) return false;
+    if (logExercises.some(le => le.exerciseTitle.toLowerCase() === lower)) return false;
+    return true;
+  }, [trimmedSearch, uniqueExercises, logExercises]);
 
   // ── Logger handlers ──
   const addExercise = (title: string) => {
@@ -346,6 +366,30 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
   const removeExercise = (i: number) =>
     setLogExercises(prev => prev.filter((_, idx) => idx !== i));
+
+  // Open the "new exercise" panel — the user still needs to pick a muscle group.
+  const beginCreate = (name: string) => {
+    setNewExName(name.trim());
+    setNewExGroup('Other');
+    setShowDropdown(false);
+  };
+
+  // Persist the new exercise to the library, then drop it into this workout.
+  const confirmCreate = async () => {
+    const name = newExName?.trim();
+    if (!name) return;
+    setCreatingEx(true);
+    try {
+      await createExercise(name, newExGroup);
+      addExercise(name);
+      setNewExName(null);
+      setExerciseSearch('');
+    } catch (err) {
+      console.error('Error creating exercise:', err);
+    } finally {
+      setCreatingEx(false);
+    }
+  };
 
   const updateSet = (exIdx: number, sIdx: number, field: keyof LogSet, value: any) =>
     setLogExercises(prev => prev.map((ex, ei) =>
@@ -514,11 +558,15 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
                 onChange={e => { setExerciseSearch(e.target.value); setShowDropdown(true); }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                onKeyDown={e => { if (e.key === 'Enter' && filteredExercises.length > 0) addExercise(filteredExercises[0]); }}
+                onKeyDown={e => {
+                  if (e.key !== 'Enter') return;
+                  if (filteredExercises.length > 0) addExercise(filteredExercises[0]);
+                  else if (canCreateNew) beginCreate(trimmedSearch);
+                }}
                 placeholder="Search exercises..."
                 style={inputStyle}
               />
-              {showDropdown && filteredExercises.length > 0 && (
+              {showDropdown && (filteredExercises.length > 0 || canCreateNew) && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
                   background: 'rgba(15,18,25,0.97)', border: '1px solid rgba(255,255,255,0.1)',
@@ -536,9 +584,68 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
                       {ex}
                     </div>
                   ))}
+                  {canCreateNew && (
+                    <div
+                      onMouseDown={e => { e.preventDefault(); beginCreate(trimmedSearch); }}
+                      style={{ padding: '10px 16px', cursor: 'pointer', fontSize: '14px', fontFamily: 'Inter', color: 'var(--accent-pink-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <Plus size={14} /> Create "{trimmedSearch}"
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* New-exercise panel — pick a muscle group before it joins the library */}
+            {newExName && (
+              <div style={{
+                background: 'rgba(255,46,147,0.06)',
+                border: '1px solid rgba(255,46,147,0.25)',
+                borderRadius: '14px', padding: '16px',
+                display: 'flex', flexDirection: 'column', gap: '12px',
+              }}>
+                <span style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  New exercise: <strong style={{ color: 'var(--text-primary)' }}>{newExName}</strong>
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <select
+                    value={newExGroup}
+                    onChange={e => setNewExGroup(e.target.value)}
+                    style={{ ...selectStyle, flex: '1 1 140px', width: 'auto' }}
+                  >
+                    {MUSCLE_GROUPS.map(g => (
+                      <option key={g} value={g} style={{ background: 'var(--bg-dark)' }}>{g}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={confirmCreate}
+                    disabled={creatingEx}
+                    style={{
+                      padding: '10px 20px', background: 'var(--accent-gradient)',
+                      border: 'none', borderRadius: '10px', color: '#fff',
+                      fontFamily: 'Outfit', fontWeight: 600, fontSize: '14px',
+                      cursor: creatingEx ? 'not-allowed' : 'pointer', opacity: creatingEx ? 0.6 : 1,
+                    }}
+                  >
+                    {creatingEx ? 'Adding…' : 'Add'}
+                  </button>
+                  <button
+                    onClick={() => setNewExName(null)}
+                    disabled={creatingEx}
+                    style={{
+                      padding: '10px 20px', background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--glass-border)', borderRadius: '10px',
+                      color: 'var(--text-secondary)', fontFamily: 'Outfit', fontWeight: 600,
+                      fontSize: '14px', cursor: creatingEx ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Exercise cards */}
             {logExercises.map((ex, exIdx) => (
