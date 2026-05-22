@@ -282,6 +282,10 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
   const [newExGroup, setNewExGroup] = useState('Other');
   const [creatingEx, setCreatingEx] = useState(false);
 
+  // ── Inline exercise rename (swap which library exercise a slot uses) ──
+  const [editingExIdx, setEditingExIdx] = useState<number | null>(null);
+  const [editExSearch, setEditExSearch] = useState('');
+
   const resetForm = () => {
     setEditingId(null);
     setLogTitle('Workout');
@@ -290,6 +294,8 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
     setLogExercises([]);
     setExerciseSearch('');
     setNewExName(null);
+    setEditingExIdx(null);
+    setEditExSearch('');
     setLogDateTime(freshDateTime());
   };
 
@@ -356,6 +362,19 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
     return true;
   }, [trimmedSearch, uniqueExercises, logExercises]);
 
+  // Library options for the inline rename picker — excludes exercises already
+  // used in this workout (the slot's current exercise stays selectable).
+  const renameOptions = useMemo<string[]>(() => {
+    if (editingExIdx === null) return [];
+    const q = editExSearch.trim().toLowerCase();
+    const current = logExercises[editingExIdx]?.exerciseTitle;
+    const used = new Set(
+      logExercises.filter((_, i) => i !== editingExIdx).map(le => le.exerciseTitle),
+    );
+    const list = q ? uniqueExercises.filter(e => e.toLowerCase().includes(q)) : uniqueExercises;
+    return list.filter(e => e === current || !used.has(e));
+  }, [editingExIdx, editExSearch, uniqueExercises, logExercises]);
+
   // ── Logger handlers ──
   const addExercise = (title: string) => {
     if (!title) return;
@@ -366,6 +385,21 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
   const removeExercise = (i: number) =>
     setLogExercises(prev => prev.filter((_, idx) => idx !== i));
+
+  // Open the inline picker for an exercise card.
+  const beginRename = (exIdx: number) => {
+    setEditingExIdx(exIdx);
+    setEditExSearch(logExercises[exIdx]?.exerciseTitle ?? '');
+  };
+
+  // Swap the slot to a different library exercise.
+  const applyRename = (exIdx: number, newTitle: string) => {
+    const title = newTitle.trim();
+    setEditingExIdx(null);
+    setEditExSearch('');
+    if (!title) return;
+    setLogExercises(prev => prev.map((ex, ei) => (ei === exIdx ? { ...ex, exerciseTitle: title } : ex)));
+  };
 
   // Open the "new exercise" panel — the user still needs to pick a muscle group.
   const beginCreate = (name: string) => {
@@ -649,17 +683,63 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
             {/* Exercise cards */}
             {logExercises.map((ex, exIdx) => (
-              <div key={ex.exerciseTitle} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '20px' }}>
+              <div key={exIdx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '20px' }}>
 
                 {/* Exercise header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '4px', height: '18px', background: 'var(--accent-gradient)', borderRadius: '4px' }} />
-                    <h4 style={{ fontFamily: 'Outfit', fontSize: '16px', margin: 0 }}>{ex.exerciseTitle}</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                    <div style={{ width: '4px', height: '18px', background: 'var(--accent-gradient)', borderRadius: '4px', flexShrink: 0 }} />
+                    {editingExIdx === exIdx ? (
+                      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                        <input
+                          autoFocus
+                          value={editExSearch}
+                          onChange={e => setEditExSearch(e.target.value)}
+                          onBlur={() => setTimeout(() => setEditingExIdx(null), 150)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && renameOptions.length > 0) applyRename(exIdx, renameOptions[0]);
+                            if (e.key === 'Escape') setEditingExIdx(null);
+                          }}
+                          placeholder="Search exercises..."
+                          style={{ ...inputStyle, padding: '8px 12px', fontFamily: 'Outfit', fontSize: '15px' }}
+                        />
+                        {renameOptions.length > 0 && (
+                          <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
+                            background: 'rgba(15,18,25,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '12px', maxHeight: '200px', overflowY: 'auto',
+                            zIndex: 50, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                          }}>
+                            {renameOptions.map(opt => (
+                              <div
+                                key={opt}
+                                onMouseDown={e => { e.preventDefault(); applyRename(exIdx, opt); }}
+                                style={{ padding: '10px 16px', cursor: 'pointer', fontSize: '14px', fontFamily: 'Inter', color: opt === ex.exerciseTitle ? 'var(--accent-pink-main)' : 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                {opt}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <h4 style={{ fontFamily: 'Outfit', fontSize: '16px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.exerciseTitle}</h4>
+                        <button
+                          onClick={() => beginRename(exIdx)}
+                          title="Change exercise"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', borderRadius: '7px', width: '26px', height: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      </>
+                    )}
                   </div>
                   <button
                     onClick={() => removeExercise(exIdx)}
-                    style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                   >
                     <X size={14} color="#EF4444" />
                   </button>
