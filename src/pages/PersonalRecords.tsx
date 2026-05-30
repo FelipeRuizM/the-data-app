@@ -1,10 +1,68 @@
-import React, { useMemo } from 'react';
-import { Trophy, Flame, LineChart } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Trophy, Flame, LineChart, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { calculatePRs, REP_BASED_EXERCISES, type PRData } from '../utils/prEngine';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
 import './PersonalRecords.css';
+
+// ── Exercise search → jumps to the per-exercise detail page ──────────────────
+const ExerciseSearch: React.FC<{ exercises: string[] }> = ({ exercises }) => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [open, setOpen]   = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? exercises.filter(e => e.toLowerCase().includes(q)) : exercises;
+  }, [exercises, query]);
+
+  const go = (title: string) => navigate(`/exercises/${encodeURIComponent(title)}`);
+
+  return (
+    <div className="pr-search" ref={ref}>
+      <Search size={16} className="pr-search-icon" />
+      <input
+        className="pr-search-input"
+        placeholder="Search an exercise to see its progress…"
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && filtered.length > 0) go(filtered[0]);
+        }}
+      />
+      {query && (
+        <button className="pr-search-clear" onClick={() => { setQuery(''); setOpen(false); }}>
+          <X size={14} />
+        </button>
+      )}
+      {open && filtered.length > 0 && (
+        <div className="pr-search-dropdown">
+          {filtered.slice(0, 80).map(ex => (
+            <div
+              key={ex}
+              className="pr-search-option"
+              onMouseDown={e => { e.preventDefault(); go(ex); }}
+            >
+              {ex}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const PersonalRecords: React.FC<any> = ({ workouts }) => {
   const { unit } = useSettings();
@@ -12,6 +70,11 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
   const prs = useMemo(() => calculatePRs(workouts), [workouts]);
+
+  const uniqueExercises = useMemo<string[]>(
+    () => Array.from(new Set(workouts.map((w: any) => w.exerciseTitle))).sort() as string[],
+    [workouts],
+  );
 
   const championsList = ['Bench Press', 'Squat', 'Pull Up'];
 
@@ -51,11 +114,7 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
     const hasRecord = repBased ? pr.maxReps > 0 : displayWeight > 0;
 
     const handleClick = () => {
-      const params = new URLSearchParams({
-        exercise: pr.exerciseTitle,
-        timeframe: 'all',
-      });
-      navigate(`/analytics?${params.toString()}`);
+      navigate(`/exercises/${encodeURIComponent(pr.exerciseTitle)}`);
     };
 
     return (
@@ -124,6 +183,8 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
         <Trophy size={32} color="var(--accent-pink-main)" />
         <h2>Trophy Room</h2>
       </div>
+
+      <ExerciseSearch exercises={uniqueExercises} />
 
       <div className="champions-grid">
         {champions.map((pr, i) => renderCard(pr, true, i))}

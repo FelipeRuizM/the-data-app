@@ -1,0 +1,207 @@
+/* ══════════════════════════════════════════════════════════════════
+   Exercise Detail Page
+   ══════════════════════════════════════════════════════════════════ */
+
+.exd-page {
+  padding: 0 32px 40px;
+}
+
+/* ── Back link ─────────────────────────────────────────────────── */
+
+.exd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 20px;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.exd-back:hover {
+  color: var(--accent-pink-main);
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.exd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.exd-title {
+  margin: 0;
+  letter-spacing: -0.02em;
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.exd-muscle {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-pink-main);
+  background: rgba(255, 46, 147, 0.1);
+  border: 1px solid rgba(255, 46, 147, 0.25);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
+/* ── Pill selectors (time range + metric) ──────────────────────── */
+
+.exd-time-selector,
+.exd-metric-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.exd-metric-selector {
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.exd-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.exd-pill:hover {
+  color: var(--text-primary);
+  background: var(--glass-hover-bg);
+}
+
+.exd-pill.active {
+  background: var(--accent-gradient);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 46, 147, 0.4);
+}
+
+/* ── Summary stats ─────────────────────────────────────────────── */
+
+.exd-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.exd-stat {
+  padding: 18px 20px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exd-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Outfit', sans-serif;
+}
+
+.exd-stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.exd-stat-value {
+  font-size: 30px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+
+.exd-stat-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ── Empty state ───────────────────────────────────────────────── */
+
+.exd-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  padding: 60px 0;
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .exd-page {
+    padding: 0 16px 32px;
+  }
+
+  .exd-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .exd-time-selector {
+    width: 100%;
+  }
+
+  .exd-time-selector .exd-pill {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+  }
+
+  .exd-stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .exd-metric-selector {
+    width: 100%;
+  }
+
+  .exd-metric-selector .exd-pill {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+  }
+
+  .exd-stat-value {
+    font-size: 24px;
+  }
+}

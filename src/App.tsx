@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { Workouts } from './pages/Workouts';
 import { PersonalRecords } from './pages/PersonalRecords';
+import { ExerciseDetail } from './pages/ExerciseDetail';
 import { Analytics } from './pages/Analytics';
 import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
@@ -48,6 +49,7 @@ function AuthedApp() {
         <Route index element={<Dashboard workouts={workouts} />} />
         <Route path="workouts" element={<Workouts workouts={workouts} />} />
         <Route path="records" element={<PersonalRecords workouts={workouts} />} />
+        <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
         <Route path="analytics" element={<Analytics workouts={workouts} />} />
         <Route path="settings" element={<Settings />} />
       </Route>

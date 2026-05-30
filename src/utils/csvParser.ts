@@ -7,7 +7,7 @@ export interface WorkoutSet {
   supersetId: string;
   exerciseNotes: string;
   setIndex: number;
-  setType: 'warmup' | 'normal' | 'dropset' | 'failure';
+  setType: 'warmup' | 'normal' | 'dropset' | 'failure' | 'feeder' | 'working';
   weightKg: number;
   reps: number;
   distanceKm: number;

@@ -243,6 +243,95 @@ export function getVolumePerWorkout(
   return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
+// ─── Per-Exercise Session Metrics ─────────────────────────────────────────────
+
+export type ExerciseMetric = 'volume' | 'est1rm' | 'bestSet' | 'heaviest';
+
+export interface ExerciseSessionPoint {
+  workoutId: string;
+  date: Date;
+  label: string;      // 'MMM d'   — x-axis ticks
+  fullLabel: string;  // 'MMM d, yyyy' — tooltips
+  volumeKg: number;   // Σ weight×reps across the exercise's sets that session
+  est1rmKg: number;   // max over sets of weight×(1 + reps/30)  (Epley)
+  bestSetKg: number;  // max over sets of weight×reps
+  heaviestKg: number; // max weight lifted
+}
+
+/**
+ * Aggregates one point per workout session for a (pre-filtered) single exercise,
+ * tracking the four supported per-exercise metrics. Values stay in kg — callers
+ * convert to lbs. Ordered chronologically.
+ */
+export function getExerciseSessions(
+  workouts: (WorkoutSet & { id: string })[],
+): ExerciseSessionPoint[] {
+  const map = new Map<string, ExerciseSessionPoint>();
+
+  workouts.forEach(w => {
+    const existing = map.get(w.id) ?? {
+      workoutId: w.id,
+      date: w.startTime,
+      label: format(w.startTime, 'MMM d'),
+      fullLabel: format(w.startTime, 'MMM d, yyyy'),
+      volumeKg: 0,
+      est1rmKg: 0,
+      bestSetKg: 0,
+      heaviestKg: 0,
+    };
+
+    const setVolume = w.weightKg * w.reps;
+    const est1rm = w.weightKg * (1 + w.reps / 30);
+
+    existing.volumeKg += setVolume;
+    existing.bestSetKg = Math.max(existing.bestSetKg, setVolume);
+    existing.est1rmKg = Math.max(existing.est1rmKg, est1rm);
+    existing.heaviestKg = Math.max(existing.heaviestKg, w.weightKg);
+
+    // Keep the earliest startTime as the canonical session date
+    if (w.startTime < existing.date) {
+      existing.date = w.startTime;
+      existing.label = format(w.startTime, 'MMM d');
+      existing.fullLabel = format(w.startTime, 'MMM d, yyyy');
+    }
+    map.set(w.id, existing);
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+// ─── Per-Set Points (one point per set, chronological) ────────────────────────
+
+export interface ExerciseSetPoint {
+  index: number;       // sequential position — used as the x value
+  date: Date;
+  dateLabel: string;   // 'MMM d, yyyy'
+  reps: number;
+  weightKg: number;    // kg — caller converts to display unit
+  setType: string;
+}
+
+/**
+ * One point per logged set for a (pre-filtered) single exercise, ordered
+ * chronologically then by set index within a session. The incoming rows are
+ * already flattened to one row per set, so this just sorts and shapes them.
+ */
+export function getExerciseSetPoints(
+  workouts: (WorkoutSet & { id: string })[],
+): ExerciseSetPoint[] {
+  return workouts
+    .slice()
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime() || a.setIndex - b.setIndex)
+    .map((w, i) => ({
+      index: i,
+      date: w.startTime,
+      dateLabel: format(w.startTime, 'MMM d, yyyy'),
+      reps: w.reps,
+      weightKg: w.weightKg,
+      setType: w.setType,
+    }));
+}
+
 // ─── Dynamic Weekly Metric ────────────────────────────────────────────────────
 
 export interface WeeklyMetricPoint {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
@@ -11,7 +11,7 @@ import { MUSCLE_GROUPS } from '../utils/workoutUtils';
 
 // ── Logger types ──────────────────────────────────────────────
 interface LogSet {
-  setType: 'normal' | 'warmup' | 'dropset' | 'failure';
+  setType: 'normal' | 'warmup' | 'dropset' | 'failure' | 'feeder' | 'working';
   weight: number;
   reps: number;
 }
@@ -20,11 +20,13 @@ interface LogExercise {
   sets: LogSet[];
 }
 
-const SET_TYPES: { key: LogSet['setType']; label: string; color: string }[] = [
-  { key: 'normal',  label: '#',  color: 'var(--text-primary)' },
-  { key: 'warmup',  label: 'W',  color: '#F59E0B' },
-  { key: 'dropset', label: 'D',  color: '#3B82F6' },
-  { key: 'failure', label: 'F',  color: '#EF4444' },
+const SET_TYPES: { key: LogSet['setType']; label: string; name: string; color: string }[] = [
+  { key: 'normal',  label: '#',  name: 'Normal',   color: 'var(--text-primary)' },
+  { key: 'working', label: 'Wk', name: 'Working',  color: '#10B981' },
+  { key: 'warmup',  label: 'W',  name: 'Warmup',   color: '#F59E0B' },
+  { key: 'feeder',  label: 'Fd', name: 'Feeder',   color: '#A855F7' },
+  { key: 'dropset', label: 'D',  name: 'Drop Set', color: '#3B82F6' },
+  { key: 'failure', label: 'F',  name: 'Failure',  color: '#EF4444' },
 ];
 
 // ── Shared inline styles (defined at module scope so hoisting is not needed) ──
@@ -286,6 +288,23 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
   const [editingExIdx, setEditingExIdx] = useState<number | null>(null);
   const [editExSearch, setEditExSearch] = useState('');
 
+  // ── Set-type picker popover (anchored via fixed positioning so it escapes
+  //    the sets row's horizontal-scroll container) ──
+  const [setMenu, setSetMenu] = useState<{ exIdx: number; sIdx: number; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!setMenu) return;
+    const close = () => setSetMenu(null);
+    // Outside-click handled per-item via onMouseDown; here we close on any
+    // scroll or resize so the fixed popover never drifts away from its anchor.
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [setMenu]);
+
   const resetForm = () => {
     setEditingId(null);
     setLogTitle('Workout');
@@ -430,16 +449,9 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
       ei !== exIdx ? ex : { ...ex, sets: ex.sets.map((s, si) => si === sIdx ? { ...s, [field]: value } : s) }
     ));
 
-  const cycleSetType = (exIdx: number, sIdx: number) => {
-    const order: LogSet['setType'][] = ['normal', 'warmup', 'dropset', 'failure'];
-    setLogExercises(prev => prev.map((ex, ei) =>
-      ei !== exIdx ? ex : {
-        ...ex,
-        sets: ex.sets.map((s, si) =>
-          si !== sIdx ? s : { ...s, setType: order[(order.indexOf(s.setType) + 1) % order.length] }
-        ),
-      }
-    ));
+  const chooseSetType = (exIdx: number, sIdx: number, type: LogSet['setType']) => {
+    updateSet(exIdx, sIdx, 'setType', type);
+    setSetMenu(null);
   };
 
   const addSet = (exIdx: number) =>
@@ -759,8 +771,15 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
                   {ex.sets.map((s, sIdx) => (
                     <div key={sIdx} style={{ display: 'grid', gridTemplateColumns: '52px 1fr 1fr 32px', gap: '8px', alignItems: 'center', marginBottom: '6px', minWidth: '220px' }}>
                       <button
-                        onClick={() => cycleSetType(exIdx, sIdx)}
-                        title="Click to change set type"
+                        onClick={e => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          setSetMenu(cur =>
+                            cur && cur.exIdx === exIdx && cur.sIdx === sIdx
+                              ? null
+                              : { exIdx, sIdx, x: r.left, y: r.bottom + 6 },
+                          );
+                        }}
+                        title="Click to choose set type"
                         style={{
                           width: '40px', height: '40px', borderRadius: '10px',
                           border: '1px solid rgba(255,255,255,0.1)',
@@ -885,6 +904,61 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
           </div>
         )}
       </div>
+
+      {/* ── Set-type picker popover (fixed-positioned, anchored to the chip) ── */}
+      {setMenu && (
+        <>
+          {/* Invisible backdrop closes the menu on any outside click */}
+          <div
+            onMouseDown={() => setSetMenu(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1500 }}
+          />
+          <div
+            style={{
+              position: 'fixed', top: setMenu.y, left: setMenu.x, zIndex: 1501,
+              background: 'rgba(10, 13, 20, 0.98)',
+              backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+              padding: '6px', minWidth: '150px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+              animation: 'fadeIn 0.12s ease-out',
+            }}
+          >
+            {SET_TYPES.map(t => {
+              const active = logExercises[setMenu.exIdx]?.sets[setMenu.sIdx]?.setType === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onMouseDown={e => { e.preventDefault(); chooseSetType(setMenu.exIdx, setMenu.sIdx, t.key); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                    background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    border: 'none', borderRadius: '8px', padding: '9px 10px',
+                    cursor: 'pointer', textAlign: 'left',
+                    fontFamily: 'Inter', fontSize: '13px', fontWeight: 600,
+                    color: 'var(--text-primary)', transition: 'background 0.12s ease',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span
+                    style={{
+                      width: '26px', height: '26px', borderRadius: '7px', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: t.key === 'normal' ? 'rgba(255,255,255,0.06)' : `${t.color}1A`,
+                      color: t.color,
+                      fontWeight: 700, fontSize: '12px',
+                    }}
+                  >
+                    {t.label}
+                  </span>
+                  <span>{t.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
     </div>
   );
