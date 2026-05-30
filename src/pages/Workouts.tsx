@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
@@ -290,7 +291,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
   // ── Set-type picker popover (anchored via fixed positioning so it escapes
   //    the sets row's horizontal-scroll container) ──
-  const [setMenu, setSetMenu] = useState<{ exIdx: number; sIdx: number; x: number; y: number } | null>(null);
+  const [setMenu, setSetMenu] = useState<{ exIdx: number; sIdx: number; x: number; y: number; placement: 'up' | 'down' } | null>(null);
 
   useEffect(() => {
     if (!setMenu) return;
@@ -773,11 +774,16 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
                       <button
                         onClick={e => {
                           const r = e.currentTarget.getBoundingClientRect();
-                          setSetMenu(cur =>
-                            cur && cur.exIdx === exIdx && cur.sIdx === sIdx
-                              ? null
-                              : { exIdx, sIdx, x: r.left, y: r.bottom + 6 },
-                          );
+                          setSetMenu(cur => {
+                            if (cur && cur.exIdx === exIdx && cur.sIdx === sIdx) return null;
+                            // Flip the menu upward when there isn't room below (e.g. lower
+                            // exercises near the bottom of the viewport), and clamp it on-screen.
+                            const MENU_H = 290, MENU_W = 180, GAP = 6;
+                            const openUp = r.bottom + GAP + MENU_H > window.innerHeight && r.top - GAP - MENU_H > 0;
+                            const x = Math.max(8, Math.min(r.left, window.innerWidth - MENU_W - 8));
+                            const y = openUp ? r.top - GAP : r.bottom + GAP;
+                            return { exIdx, sIdx, x, y, placement: openUp ? 'up' : 'down' };
+                          });
                         }}
                         title="Click to choose set type"
                         style={{
@@ -906,7 +912,7 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
       </div>
 
       {/* ── Set-type picker popover (fixed-positioned, anchored to the chip) ── */}
-      {setMenu && (
+      {setMenu && createPortal(
         <>
           {/* Invisible backdrop closes the menu on any outside click */}
           <div
@@ -916,12 +922,13 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
           <div
             style={{
               position: 'fixed', top: setMenu.y, left: setMenu.x, zIndex: 1501,
+              transform: setMenu.placement === 'up' ? 'translateY(-100%)' : 'none',
               background: 'rgba(10, 13, 20, 0.98)',
               backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
               padding: '6px', minWidth: '150px',
+              maxHeight: 'calc(100vh - 16px)', overflowY: 'auto',
               boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
-              animation: 'fadeIn 0.12s ease-out',
             }}
           >
             {SET_TYPES.map(t => {
@@ -957,7 +964,8 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
               );
             })}
           </div>
-        </>
+        </>,
+        document.body,
       )}
 
     </div>
