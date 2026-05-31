@@ -156,6 +156,7 @@ export function getMostLoggedExercises(
 export interface MuscleGroupPoint {
   name: string;
   sets: number;
+  reps: number;
   volumeKg: number;
 }
 
@@ -167,8 +168,9 @@ export function getVolumeByMuscleGroup(
 
   workouts.forEach(w => {
     const group = getMuscleGroup(w.exerciseTitle);
-    const existing = map.get(group) ?? { name: group, sets: 0, volumeKg: 0 };
+    const existing = map.get(group) ?? { name: group, sets: 0, reps: 0, volumeKg: 0 };
     existing.sets += 1;
+    existing.reps += w.reps;
     existing.volumeKg += w.weightKg * w.reps;
     map.set(group, existing);
   });
