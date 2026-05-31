@@ -1,0 +1,5 @@
+# Local secrets and generated import output — never commit these.
+.strava.json
+.strava-tokens.json
+.env
+output/

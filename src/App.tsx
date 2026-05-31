@@ -8,6 +8,7 @@ import { PersonalRecords } from './pages/PersonalRecords';
 import { ExerciseDetail } from './pages/ExerciseDetail';
 import { Analytics } from './pages/Analytics';
 import { MonthlyReports } from './pages/MonthlyReports';
+import { Running } from './pages/Running';
 import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useAuth } from './context/AuthContext';
@@ -25,7 +26,7 @@ const LoadingScreen = ({ label }: { label: string }) => (
 );
 
 function AuthedApp() {
-  const { user } = useAuth();
+  const { user, canWrite } = useAuth();
   const { workouts, loading } = useWorkouts();
   const { exercises, loading: exercisesLoading } = useExercises();
   const seedAttempted = useRef(false);
@@ -34,13 +35,14 @@ function AuthedApp() {
   // library yet, seed the library from the exercise titles in their workouts.
   useEffect(() => {
     if (loading || exercisesLoading || seedAttempted.current) return;
+    if (!canWrite) return; // guests never write
     if (exercises.length > 0) { seedAttempted.current = true; return; }
     if (!user?.uid || workouts.length === 0) return;
     seedAttempted.current = true;
     seedExercisesFromWorkouts(user.uid, workouts).catch(err =>
       console.error('[DB] Exercise seeding failed:', err),
     );
-  }, [loading, exercisesLoading, exercises.length, workouts, user]);
+  }, [loading, exercisesLoading, exercises.length, workouts, user, canWrite]);
 
   if (loading || exercisesLoading) return <LoadingScreen label="Synching Backend..." />;
 
@@ -53,6 +55,7 @@ function AuthedApp() {
         <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
         <Route path="analytics" element={<Analytics workouts={workouts} />} />
         <Route path="monthly" element={<MonthlyReports workouts={workouts} />} />
+        <Route path="running" element={<Running />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
@@ -60,10 +63,10 @@ function AuthedApp() {
 }
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
 
   if (loading) return <LoadingScreen label="Loading..." />;
-  if (!user) return <Login />;
+  if (!user && !isGuest) return <Login />;
 
   return <AuthedApp />;
 }

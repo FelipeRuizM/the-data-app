@@ -35,7 +35,7 @@ const friendlyError = (code: string): string => {
 };
 
 export const Login: React.FC = () => {
-  const { signIn } = useAuth();
+  const { signIn, enterGuestMode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +157,30 @@ export const Login: React.FC = () => {
         >
           {busy ? 'Signing in...' : 'Sign In'}
         </button>
+
+        <button
+          type="button"
+          onClick={enterGuestMode}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: 'transparent',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '14px',
+            color: 'var(--text-secondary)',
+            fontFamily: 'Outfit',
+            fontSize: '14px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            letterSpacing: '0.02em',
+          }}
+        >
+          Continue as guest
+        </button>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'Inter', margin: 0 }}>
+          Guests can view data but not make changes.
+        </p>
       </form>
     </div>
   );

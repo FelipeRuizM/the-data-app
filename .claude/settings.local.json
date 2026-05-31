@@ -5,7 +5,20 @@
       "Bash(npx eslint *)",
       "Bash(npm run *)",
       "PowerShell(\"Deleted orphaned analytics/VolumeChart.tsx\")",
-      "PowerShell(\"Remaining analytics components:\")"
+      "Bash(echo \"EXITCODE=$?\")",
+      "Bash(curl -sIL -A \"Mozilla/5.0\" \"https://strava.app.link/nIdzJvyGA3b\" -o /dev/null -w \"final_url=%{url_effective}\\\\nhttp=%{http_code}\\\\n\")",
+      "Bash(curl -sIL -A \"Mozilla/5.0\" \"https://strava.app.link/nIdzJvyGA3b\")",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" \"https://hevy.com/workout/0IPJCabQJql\" -o /tmp/hevy.html -w \"HTTP %{http_code}  size=%{size_download}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" \"https://hevy.com/workout/0IPJCabQJql\" -o /tmp/hevy.html -w \"HTTP %{http_code} size=%{size_download}\\\\n\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(curl -sIL -A \"Mozilla/5.0\" \"https://strava.app.link/nIdzJvyGA3b\" -w \"FINAL=%{url_effective} HTTP=%{http_code}\\\\n\" -o /dev/null)",
+      "Bash(curl -s -o /dev/null -w \"google=%{http_code}\\\\n\" https://www.google.com)",
+      "Bash(curl -s -o /dev/null -w \"hevy=%{http_code}\\\\n\" -A \"Mozilla/5.0\" https://hevy.com/workout/0IPJCabQJql)",
+      "WebFetch(domain:hevy.com)",
+      "Bash(node scripts/importHevy.mjs 0IPJCabQJql --raw)",
+      "Bash(node -e \"console.log\\('node ok', process.version\\)\")",
+      "Bash(node -e \"console.log\\('node', process.version\\)\")"
     ]
   }
 }

@@ -30,8 +30,8 @@ interface ExercisesContextType {
 const ExercisesContext = createContext<ExercisesContextType | undefined>(undefined);
 
 export const ExercisesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const uid = user?.uid;
+  const { dataUid, canWrite } = useAuth();
+  const uid = dataUid;
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,35 +88,35 @@ export const ExercisesProvider: React.FC<{ children: ReactNode }> = ({ children 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const createExercise = useCallback(
     async (name: string, muscleGroup: string) => {
-      if (!uid) throw new Error('Not authenticated');
+      if (!uid || !canWrite) throw new Error('Not authenticated');
       console.log(`[DB] Creating exercise "${name}" (${muscleGroup})`);
       await push(ref(realtimeDb, `/users/${uid}/exercises`), {
         name: name.trim(),
         muscleGroup,
       });
     },
-    [uid],
+    [uid, canWrite],
   );
 
   const updateExercise = useCallback(
     async (id: string, data: { name?: string; muscleGroup?: string }) => {
-      if (!uid) throw new Error('Not authenticated');
+      if (!uid || !canWrite) throw new Error('Not authenticated');
       const patch: Record<string, string> = {};
       if (data.name !== undefined) patch.name = data.name.trim();
       if (data.muscleGroup !== undefined) patch.muscleGroup = data.muscleGroup;
       console.log(`[DB] Updating exercise ${id}`, patch);
       await update(ref(realtimeDb, `/users/${uid}/exercises/${id}`), patch);
     },
-    [uid],
+    [uid, canWrite],
   );
 
   const deleteExercise = useCallback(
     async (id: string) => {
-      if (!uid) throw new Error('Not authenticated');
+      if (!uid || !canWrite) throw new Error('Not authenticated');
       console.log(`[DB] Deleting exercise ${id}`);
       await remove(ref(realtimeDb, `/users/${uid}/exercises/${id}`));
     },
-    [uid],
+    [uid, canWrite],
   );
 
   return (

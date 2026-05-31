@@ -8,8 +8,8 @@ import { useAuth } from '../context/AuthContext';
 export type TaggedWorkout = WorkoutSet & { id: string, category?: string };
 
 export const useWorkouts = () => {
-  const { user } = useAuth();
-  const uid = user?.uid;
+  const { dataUid } = useAuth();
+  const uid = dataUid;
   const [workouts, setWorkouts] = useState<TaggedWorkout[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -83,6 +83,11 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const curVol  = Math.round(cur.volumeKg * multiplier);
   const prevVol = Math.round(prev.volumeKg * multiplier);
 
+  const curAvgVol  = cur.workoutCount  ? Math.round(curVol / cur.workoutCount)   : 0;
+  const prevAvgVol = prev.workoutCount ? Math.round(prevVol / prev.workoutCount) : 0;
+  const curAvgDur  = cur.workoutCount  ? Math.round(cur.durationMin / cur.workoutCount)   : 0;
+  const prevAvgDur = prev.workoutCount ? Math.round(prev.durationMin / prev.workoutCount) : 0;
+
   return (
     <div className="mr-page" style={{ animation: 'fadeIn 0.5s ease-out' }}>
       <div className="mr-header">
@@ -108,6 +113,8 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
         <StatCard label="Duration" cur={cur.durationMin}   prev={prev.durationMin}   fmt={fmtDuration} />
         <StatCard label="Volume"   cur={curVol}            prev={prevVol}            fmt={fmtVolume} unit={unit} />
         <StatCard label="Sets"     cur={cur.setCount}      prev={prev.setCount}      fmt={fmtInt} />
+        <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
+        <StatCard label="Avg Session Time"     cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
       </div>
 
       {/* Cross-month trend (toggle workouts / duration / volume / sets) */}

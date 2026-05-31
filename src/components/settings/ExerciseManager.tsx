@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pencil, Trash2, Plus, X, Check } from 'lucide-react';
 import { useExercises, type Exercise } from '../../context/ExercisesContext';
+import { useAuth } from '../../context/AuthContext';
 import { MUSCLE_GROUPS } from '../../utils/workoutUtils';
 
 const inputStyle: React.CSSProperties = {
@@ -39,6 +40,7 @@ const iconBtnStyle: React.CSSProperties = {
 // ── A single library row — view mode with inline edit ────────────────────────
 const ExerciseRow: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
   const { updateExercise, deleteExercise } = useExercises();
+  const { canWrite } = useAuth();
   const [editing, setEditing] = useState(false);
   const [name, setName]   = useState(exercise.name);
   const [group, setGroup] = useState(exercise.muscleGroup);
@@ -115,12 +117,16 @@ const ExerciseRow: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
       }}>
         {exercise.muscleGroup}
       </span>
-      <button onClick={() => setEditing(true)} disabled={busy} title="Edit" style={iconBtnStyle}>
-        <Pencil size={14} />
-      </button>
-      <button onClick={del} disabled={busy} title="Delete" style={{ ...iconBtnStyle, color: '#fca5a5' }}>
-        <Trash2 size={14} />
-      </button>
+      {canWrite && (
+        <>
+          <button onClick={() => setEditing(true)} disabled={busy} title="Edit" style={iconBtnStyle}>
+            <Pencil size={14} />
+          </button>
+          <button onClick={del} disabled={busy} title="Delete" style={{ ...iconBtnStyle, color: '#fca5a5' }}>
+            <Trash2 size={14} />
+          </button>
+        </>
+      )}
     </div>
   );
 };
@@ -128,6 +134,7 @@ const ExerciseRow: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
 // ── Exercise library manager ─────────────────────────────────────────────────
 export const ExerciseManager: React.FC = () => {
   const { exercises, loading, createExercise } = useExercises();
+  const { canWrite } = useAuth();
   const [search, setSearch]     = useState('');
   const [newName, setNewName]   = useState('');
   const [newGroup, setNewGroup] = useState('Other');
@@ -167,37 +174,41 @@ export const ExerciseManager: React.FC = () => {
         Add, rename or remove exercises and set the muscle group used across your analytics.
       </p>
 
-      {/* Add form */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-        <input
-          value={newName}
-          onChange={e => { setNewName(e.target.value); setError(''); }}
-          onKeyDown={e => { if (e.key === 'Enter') add(); }}
-          placeholder="New exercise name"
-          style={{ ...inputStyle, flex: '2 1 150px' }}
-        />
-        <select value={newGroup} onChange={e => setNewGroup(e.target.value)} style={{ ...selectStyle, flex: '1 1 120px' }}>
-          {MUSCLE_GROUPS.map(g => (
-            <option key={g} value={g} style={{ background: 'var(--bg-dark)' }}>{g}</option>
-          ))}
-        </select>
-        <button
-          onClick={add}
-          disabled={adding || !newName.trim()}
-          style={{
-            padding: '10px 18px',
-            background: newName.trim() ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.05)',
-            border: 'none', borderRadius: '10px',
-            color: newName.trim() ? '#fff' : 'var(--text-muted)',
-            fontFamily: 'Outfit', fontWeight: 600, fontSize: '14px',
-            cursor: adding || !newName.trim() ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-          }}
-        >
-          <Plus size={15} /> {adding ? 'Adding…' : 'Add'}
-        </button>
-      </div>
-      {error && <p style={{ color: '#fca5a5', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+      {/* Add form (owner only) */}
+      {canWrite && (
+        <>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <input
+              value={newName}
+              onChange={e => { setNewName(e.target.value); setError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') add(); }}
+              placeholder="New exercise name"
+              style={{ ...inputStyle, flex: '2 1 150px' }}
+            />
+            <select value={newGroup} onChange={e => setNewGroup(e.target.value)} style={{ ...selectStyle, flex: '1 1 120px' }}>
+              {MUSCLE_GROUPS.map(g => (
+                <option key={g} value={g} style={{ background: 'var(--bg-dark)' }}>{g}</option>
+              ))}
+            </select>
+            <button
+              onClick={add}
+              disabled={adding || !newName.trim()}
+              style={{
+                padding: '10px 18px',
+                background: newName.trim() ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.05)',
+                border: 'none', borderRadius: '10px',
+                color: newName.trim() ? '#fff' : 'var(--text-muted)',
+                fontFamily: 'Outfit', fontWeight: 600, fontSize: '14px',
+                cursor: adding || !newName.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+              }}
+            >
+              <Plus size={15} /> {adding ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+          {error && <p style={{ color: '#fca5a5', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+        </>
+      )}
 
       {/* Search */}
       <input

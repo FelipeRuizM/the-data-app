@@ -90,7 +90,7 @@ const getBodyweightAddition = (startTime: Date) =>
 
 // ── WorkoutCard (historical sessions) ────────────────────────
 const WorkoutCard = ({ session, unit, onEdit, isEditing }: any) => {
-  const { user } = useAuth();
+  const { user, canWrite } = useAuth();
   const uid = user?.uid;
   const [isOpen, setIsOpen] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
@@ -143,6 +143,7 @@ const WorkoutCard = ({ session, unit, onEdit, isEditing }: any) => {
             </span>
           </div>
 
+          {canWrite && (
           <div onClick={e => e.stopPropagation()} style={{ marginRight: '80px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <select
               value={session.category || 'Mixed'}
@@ -175,6 +176,7 @@ const WorkoutCard = ({ session, unit, onEdit, isEditing }: any) => {
               <Pencil size={14} />
             </button>
           </div>
+          )}
         </div>
 
         {/* Stats row */}
@@ -227,7 +229,7 @@ const WorkoutCard = ({ session, unit, onEdit, isEditing }: any) => {
 // ── Workouts page ─────────────────────────────────────────────
 export const Workouts: React.FC<any> = ({ workouts }) => {
   const { unit } = useSettings();
-  const { user } = useAuth();
+  const { user, canWrite } = useAuth();
   const uid = user?.uid;
   const { exercises: dbExercises, createExercise } = useExercises();
 
@@ -535,7 +537,8 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
         </div>
       )}
 
-      {/* ── Workout Logger ── */}
+      {/* ── Workout Logger (owner only) ── */}
+      {canWrite && (
       <div style={{
         background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
         border: isExpanded ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,46,147,0.25)',
@@ -889,7 +892,8 @@ export const Workouts: React.FC<any> = ({ workouts }) => {
 
           </div>
         )}{/* end expanded form */}
-      </div>{/* end logger panel */}
+      </div>
+      )}{/* end logger panel */}
 
       {/* ── Workout History ── */}
       <h2 style={{ marginBottom: '24px', letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>Workout History</h2>

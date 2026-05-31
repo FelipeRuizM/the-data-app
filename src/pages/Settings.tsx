@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export const Settings: React.FC = () => {
   const { unit, toggleUnit } = useSettings();
-  const { user, signOut } = useAuth();
+  const { user, isGuest, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -71,7 +71,9 @@ export const Settings: React.FC = () => {
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
         <h3 style={{ fontSize: '18px', marginBottom: '8px', fontFamily: 'Outfit' }}>Account</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-          Signed in as <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{user?.email ?? 'unknown'}</span>
+          {isGuest
+            ? 'You are viewing as a guest (read-only).'
+            : <>Signed in as <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{user?.email ?? 'unknown'}</span></>}
         </p>
         <button
           onClick={handleSignOut}
@@ -90,7 +92,7 @@ export const Settings: React.FC = () => {
             transition: 'all 0.2s ease',
           }}
         >
-          {signingOut ? 'Signing out...' : 'Sign Out'}
+          {signingOut ? (isGuest ? 'Exiting...' : 'Signing out...') : (isGuest ? 'Exit Guest' : 'Sign Out')}
         </button>
       </Card>
     </div>
