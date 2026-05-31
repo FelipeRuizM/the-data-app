@@ -1,0 +1,230 @@
+/* ══════════════════════════════════════════════════════════════════
+   Monthly Reports Page
+   ══════════════════════════════════════════════════════════════════ */
+
+.mr-page {
+  padding: 0 32px 40px;
+}
+
+/* ── Header + month navigation ─────────────────────────────────── */
+
+.mr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.mr-title {
+  margin: 0;
+  letter-spacing: -0.02em;
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mr-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.mr-nav-btn {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mr-nav-btn:hover:not(:disabled) {
+  background: var(--glass-hover-bg);
+  color: var(--accent-pink-main);
+}
+
+.mr-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mr-month-label {
+  min-width: 150px;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Stat grid ─────────────────────────────────────────────────── */
+
+.mr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.mr-card {
+  min-height: 150px;
+  border-radius: 20px;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all var(--transition-normal);
+}
+
+.mr-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Outfit', sans-serif;
+}
+
+.mr-card-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: 1;
+}
+
+.mr-card-value {
+  font-size: 40px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.mr-card-unit {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ── Comparison trend badge ────────────────────────────────────── */
+
+.mr-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mr-trend--up {
+  color: #00F0A8;
+  background: rgba(0, 240, 168, 0.1);
+}
+
+.mr-trend--down {
+  color: #FF5577;
+  background: rgba(255, 85, 119, 0.1);
+}
+
+.mr-trend--flat {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mr-trend-arrow {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.mr-trend-amount {
+  font-weight: 700;
+}
+
+.mr-trend-pct {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* ── Trend chart + content rows ────────────────────────────────── */
+
+.mr-section {
+  margin-top: 20px;
+}
+
+.mr-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+/* Let the calendar fill its grid column instead of its standalone cap */
+.mr-row .cal-container {
+  max-width: none;
+}
+
+/* ── Empty state ───────────────────────────────────────────────── */
+
+.mr-empty {
+  margin-top: 28px;
+  text-align: center;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  padding: 40px 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .mr-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mr-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .mr-page {
+    padding: 0 16px 32px;
+  }
+
+  .mr-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mr-month-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .mr-month-label {
+    flex: 1;
+  }
+
+  .mr-card-value {
+    font-size: 32px;
+  }
+}

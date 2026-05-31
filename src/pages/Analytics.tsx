@@ -4,10 +4,10 @@ import { subDays, subYears } from 'date-fns';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { DynamicMetricChart } from '../components/analytics/DynamicMetricChart';
 import { FrequencyChart } from '../components/analytics/FrequencyChart';
-import { TopExercisesChart } from '../components/analytics/TopExercisesChart';
-import { VolumeProgressionChart } from '../components/analytics/VolumeProgressionChart';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
-import { MuscleChart } from '../components/dashboard/MuscleChart';
+import { MuscleRadarChart } from '../components/analytics/MuscleRadarChart';
+import { MainExercises } from '../components/analytics/MainExercises';
+import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
 import {
@@ -326,7 +326,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       {!filters.exercise && (
         <div className="analytics-calendar-row">
           <WorkoutCalendar workouts={workouts} />
-          <MuscleChart workouts={filteredWorkouts} />
+          <MuscleRadarChart workouts={filteredWorkouts} />
         </div>
       )}
 
@@ -344,12 +344,8 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
-        <div className="analytics-charts-full">
-          <VolumeProgressionChart workouts={filteredWorkouts} exerciseFocus={filters.exercise || undefined} />
-        </div>
-        <div className="analytics-charts-full">
-          <TopExercisesChart workouts={filteredWorkouts} />
-        </div>
+        {!filters.exercise && <MainExercises workouts={filteredWorkouts} />}
+        {!filters.exercise && <MuscleSetCountChart workouts={filteredWorkouts} />}
       </div>
 
     </div>

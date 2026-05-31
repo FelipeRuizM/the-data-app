@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Activity, BarChart3, Settings as SettingsIcon, Trophy, ChevronsLeft, ChevronsRight, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, Activity, BarChart3, CalendarDays, Settings as SettingsIcon, Trophy, ChevronsLeft, ChevronsRight, Dumbbell } from 'lucide-react';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, isOpen 
     { to: '/workouts', icon: Activity, label: 'Workouts' },
     { to: '/records', icon: Trophy, label: 'Trophy Room' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/monthly', icon: CalendarDays, label: 'Monthly Reports' },
   ];
 
   return (

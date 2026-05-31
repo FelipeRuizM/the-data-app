@@ -1,4 +1,4 @@
-import { startOfWeek, endOfWeek, format, addWeeks, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, addWeeks, parseISO } from 'date-fns';
 import type { WorkoutSet } from './csvParser';
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
@@ -10,8 +10,6 @@ export interface ChartFilters {
   muscleGroup: string;     // e.g. 'Chest' — '' = all
   exercise: string;        // exact exerciseTitle — '' = all
 }
-
-export const EMPTY_FILTERS: ChartFilters = { categories: [], muscleGroup: '', exercise: '' };
 
 /**
  * Apply category / muscle / exercise filters to a flat set list.
@@ -100,27 +98,6 @@ export function fillWeeklyGaps<T extends { weekKey: string; label: string }>(
   return result;
 }
 
-// ─── Weekly Volume ────────────────────────────────────────────────────────────
-
-export interface WeeklyVolumePoint {
-  weekKey: string;
-  label: string;
-  volumeKg: number;
-}
-
-export function getWeeklyVolume(workouts: WorkoutSet[]): WeeklyVolumePoint[] {
-  const map = new Map<string, WeeklyVolumePoint>();
-
-  workouts.forEach(w => {
-    const key = getWeekKey(w.startTime);
-    const existing = map.get(key) ?? { weekKey: key, label: getWeekLabel(w.startTime), volumeKg: 0 };
-    existing.volumeKg += w.weightKg * w.reps;
-    map.set(key, existing);
-  });
-
-  return Array.from(map.values()).sort((a, b) => a.weekKey.localeCompare(b.weekKey));
-}
-
 // ─── Weekly Frequency ────────────────────────────────────────────────────────
 
 export interface WeeklyFrequencyPoint {
@@ -146,30 +123,31 @@ export function getWeeklyFrequency(workouts: (WorkoutSet & { id: string })[]): W
     .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
 }
 
-// ─── Top Exercises ────────────────────────────────────────────────────────────
+// ─── Most Logged Exercises ──────────────────────────────────────────────────
 
-export interface TopExercisePoint {
+export interface ExerciseFrequencyPoint {
   exerciseTitle: string;
-  volumeKg: number;
-  setCount: number;
+  sessionCount: number; // distinct workout sessions the exercise appears in
 }
 
-export function getTopExercises(workouts: WorkoutSet[], limit = 10): TopExercisePoint[] {
-  const map = new Map<string, TopExercisePoint>();
+/**
+ * Ranks exercises by how many distinct workout sessions they appear in — i.e.
+ * how often they're logged, regardless of how many sets logged per session.
+ */
+export function getMostLoggedExercises(
+  workouts: (WorkoutSet & { id: string })[],
+  limit = 10,
+): ExerciseFrequencyPoint[] {
+  const map = new Map<string, Set<string>>();
 
   workouts.forEach(w => {
-    const existing = map.get(w.exerciseTitle) ?? {
-      exerciseTitle: w.exerciseTitle,
-      volumeKg: 0,
-      setCount: 0,
-    };
-    existing.volumeKg += w.weightKg * w.reps;
-    existing.setCount += 1;
-    map.set(w.exerciseTitle, existing);
+    if (!map.has(w.exerciseTitle)) map.set(w.exerciseTitle, new Set());
+    map.get(w.exerciseTitle)!.add(w.id);
   });
 
-  return Array.from(map.values())
-    .sort((a, b) => b.volumeKg - a.volumeKg)
+  return Array.from(map.entries())
+    .map(([exerciseTitle, ids]) => ({ exerciseTitle, sessionCount: ids.size }))
+    .sort((a, b) => b.sessionCount - a.sessionCount)
     .slice(0, limit);
 }
 
@@ -198,49 +176,6 @@ export function getVolumeByMuscleGroup(
   return Array.from(map.values())
     .sort((a, b) => b.volumeKg - a.volumeKg)
     .filter(r => r.sets > 0);
-}
-
-// ─── Per-Workout Volume ───────────────────────────────────────────────────────
-
-export interface WorkoutVolumePoint {
-  workoutId: string;
-  date: Date;
-  label: string;      // short "MMM d" for x-axis ticks
-  fullLabel: string;  // "MMM d, yyyy" for tooltips
-  volumeKg: number;
-  sets: number;
-}
-
-/**
- * Aggregates total volume per individual workout session, ordered chronologically.
- * Ideal for exercise-isolated views — one point per workout the exercise appeared in.
- */
-export function getVolumePerWorkout(
-  workouts: (WorkoutSet & { id: string })[],
-): WorkoutVolumePoint[] {
-  const map = new Map<string, WorkoutVolumePoint>();
-
-  workouts.forEach(w => {
-    const existing = map.get(w.id) ?? {
-      workoutId: w.id,
-      date: w.startTime,
-      label: format(w.startTime, 'MMM d'),
-      fullLabel: format(w.startTime, 'MMM d, yyyy'),
-      volumeKg: 0,
-      sets: 0,
-    };
-    existing.volumeKg += w.weightKg * w.reps;
-    existing.sets += 1;
-    // Keep the earliest startTime as the canonical workout date
-    if (w.startTime < existing.date) {
-      existing.date = w.startTime;
-      existing.label = format(w.startTime, 'MMM d');
-      existing.fullLabel = format(w.startTime, 'MMM d, yyyy');
-    }
-    map.set(w.id, existing);
-  });
-
-  return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 // ─── Per-Exercise Session Metrics ─────────────────────────────────────────────
@@ -330,6 +265,106 @@ export function getExerciseSetPoints(
       weightKg: w.weightKg,
       setType: w.setType,
     }));
+}
+
+// ─── Monthly Summary ──────────────────────────────────────────────────────────
+
+export interface MonthlySummary {
+  workoutCount: number;  // distinct workout sessions in the month
+  durationMin: number;   // summed session durations, in minutes
+  volumeKg: number;      // Σ weight×reps across every set
+  setCount: number;      // total sets logged
+}
+
+/**
+ * Totals for the calendar month containing `monthAnchor` (1st → last day).
+ * Duration sums each session once (sets share a session's start/end times).
+ */
+export function getMonthlySummary(
+  workouts: (WorkoutSet & { id: string })[],
+  monthAnchor: Date,
+): MonthlySummary {
+  const start = startOfMonth(monthAnchor);
+  const end   = endOfMonth(monthAnchor);
+
+  const sessions = new Set<string>();
+  const sessionDurSec = new Map<string, number>();
+  let volumeKg = 0;
+  let setCount = 0;
+
+  workouts.forEach(w => {
+    if (w.startTime < start || w.startTime > end) return;
+    sessions.add(w.id);
+    volumeKg += w.weightKg * w.reps;
+    setCount += 1;
+    if (!sessionDurSec.has(w.id)) {
+      const sec = w.endTime ? Math.max(0, (w.endTime.getTime() - w.startTime.getTime()) / 1000) : 0;
+      sessionDurSec.set(w.id, sec);
+    }
+  });
+
+  let durationSec = 0;
+  sessionDurSec.forEach(s => { durationSec += s; });
+
+  return {
+    workoutCount: sessions.size,
+    durationMin: Math.round(durationSec / 60),
+    volumeKg,
+    setCount,
+  };
+}
+
+export interface MonthlyPoint extends MonthlySummary {
+  monthKey: string; // 'yyyy-MM' — sortable
+  label: string;    // 'MMM yy'
+}
+
+/**
+ * One point per calendar month that has data, chronological — for charting a
+ * metric across months. Single pass; dedupes session duration by id.
+ */
+export function getMonthlySeries(
+  workouts: (WorkoutSet & { id: string })[],
+): MonthlyPoint[] {
+  interface Acc {
+    date: Date;
+    sessions: Set<string>;
+    durSec: Map<string, number>;
+    volumeKg: number;
+    setCount: number;
+  }
+  const map = new Map<string, Acc>();
+
+  workouts.forEach(w => {
+    const key = format(w.startTime, 'yyyy-MM');
+    let e = map.get(key);
+    if (!e) {
+      e = { date: startOfMonth(w.startTime), sessions: new Set(), durSec: new Map(), volumeKg: 0, setCount: 0 };
+      map.set(key, e);
+    }
+    e.sessions.add(w.id);
+    e.volumeKg += w.weightKg * w.reps;
+    e.setCount += 1;
+    if (!e.durSec.has(w.id)) {
+      const sec = w.endTime ? Math.max(0, (w.endTime.getTime() - w.startTime.getTime()) / 1000) : 0;
+      e.durSec.set(w.id, sec);
+    }
+  });
+
+  return Array.from(map.entries())
+    .map(([monthKey, e]) => {
+      let durationSec = 0;
+      e.durSec.forEach(s => { durationSec += s; });
+      return {
+        monthKey,
+        label: format(e.date, 'MMM yy'),
+        workoutCount: e.sessions.size,
+        durationMin: Math.round(durationSec / 60),
+        volumeKg: e.volumeKg,
+        setCount: e.setCount,
+      };
+    })
+    .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
 // ─── Dynamic Weekly Metric ────────────────────────────────────────────────────

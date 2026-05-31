@@ -125,11 +125,6 @@
   gap: 20px;
 }
 
-/* TopExercisesChart spans full width */
-.analytics-charts-full {
-  grid-column: 1 / -1;
-}
-
 /* ── Header controls row ───────────────────────────────────────── */
 
 .analytics-header-controls {
@@ -495,7 +490,7 @@
   max-width: none;
 }
 
-/* Force the MuscleChart Card to match the calendar's natural height */
+/* Force the muscle radar Card to match the calendar's natural height */
 .analytics-calendar-row .card {
   height: 100% !important;
   box-sizing: border-box;
@@ -505,219 +500,6 @@
   .analytics-calendar-row {
     grid-template-columns: 1fr;
   }
-}
-
-/* ── Workout Calendar ──────────────────────────────────────────── */
-
-/* The glass-panel class provides background / border / blur */
-.cal-container {
-  position: relative;
-  padding: 20px 24px 24px;
-  width: 100%;
-  max-width: 540px;
-  user-select: none;
-  /* override default card border-radius */
-  border-radius: 24px !important;
-}
-
-/* Month nav row */
-.cal-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.cal-month-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.cal-nav-btn {
-  background: var(--glass-hover-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  padding: 0;
-}
-
-.cal-nav-btn:hover {
-  background: rgba(255, 46, 147, 0.1);
-  border-color: rgba(255, 46, 147, 0.3);
-  color: var(--accent-pink-main);
-}
-
-/* 7-column grid */
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-
-/* Day-of-week header labels */
-.cal-dow {
-  text-align: center;
-  font-family: 'Outfit', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding-bottom: 8px;
-}
-
-/* Blank leading cells */
-.cal-blank {
-  aspect-ratio: 1;
-}
-
-/* Day cells */
-.cal-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  border-radius: 50%;
-  cursor: default;
-  transition: background var(--transition-fast);
-}
-
-.cal-day-num {
-  font-family: 'Outfit', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-muted);
-  line-height: 1;
-}
-
-/* Today: ring + gradient number */
-.cal-day--today .cal-day-num {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
-}
-
-.cal-day--today {
-  box-shadow: inset 0 0 0 1.5px rgba(255, 46, 147, 0.35);
-}
-
-/* Workout day */
-.cal-day--workout {
-  cursor: pointer;
-}
-
-.cal-day--workout .cal-day-num {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.cal-day--workout:hover {
-  background: rgba(255, 46, 147, 0.1);
-}
-
-/* Selected state */
-.cal-day--selected {
-  background: rgba(255, 46, 147, 0.14) !important;
-}
-
-.cal-day--selected .cal-day-num {
-  color: var(--accent-pink-main) !important;
-  -webkit-text-fill-color: var(--accent-pink-main) !important;
-  font-weight: 700;
-}
-
-/* Workout dot indicator */
-.cal-dot {
-  display: block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent-pink-main);
-  box-shadow: 0 0 5px rgba(255, 46, 147, 0.8);
-  flex-shrink: 0;
-}
-
-/* ── Popover ───────────────────────────────────────────────────── */
-
-.cal-popover {
-  position: absolute;
-  background: rgba(8, 10, 16, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 46, 147, 0.2);
-  border-radius: 14px;
-  padding: 12px 16px;
-  min-width: 150px;
-  max-width: 210px;
-  z-index: 100;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.55),
-    0 0 16px rgba(255, 46, 147, 0.08);
-  pointer-events: auto;
-}
-
-.cal-popover--above {
-  transform: translateX(-50%) translateY(calc(-100% - 8px));
-  animation: calPopAbove 0.14s ease-out;
-}
-
-.cal-popover--below {
-  transform: translateX(-50%);
-  animation: calPopBelow 0.14s ease-out;
-}
-
-@keyframes calPopAbove {
-  from { opacity: 0; transform: translateX(-50%) translateY(calc(-100% - 2px)) scale(0.94); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(calc(-100% - 8px)) scale(1); }
-}
-
-@keyframes calPopBelow {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.94); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
-}
-
-.cal-popover-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.cal-popover-item--divider {
-  margin-top: 9px;
-  padding-top: 9px;
-  border-top: 1px solid var(--glass-border);
-}
-
-.cal-popover-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cal-popover-cat {
-  font-family: 'Outfit', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
 
 /* ── Mobile ────────────────────────────────────────────────────── */
@@ -755,10 +537,6 @@
 
   .analytics-charts-grid {
     grid-template-columns: 1fr;
-  }
-
-  .analytics-charts-full {
-    grid-column: 1;
   }
 
   .metric-value {

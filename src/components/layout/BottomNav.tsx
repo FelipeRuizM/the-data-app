@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Activity, Trophy, Settings } from 'lucide-react';
+import { LayoutDashboard, Activity, Trophy, CalendarDays, Settings } from 'lucide-react';
 import './BottomNav.css';
 
 const items = [
   { to: '/',          icon: LayoutDashboard, label: 'Home',     end: true  },
   { to: '/workouts',  icon: Activity,        label: 'Workouts', end: false },
   { to: '/records',   icon: Trophy,          label: 'Records',  end: false },
+  { to: '/monthly',   icon: CalendarDays,    label: 'Reports',  end: false },
   { to: '/settings',  icon: Settings,        label: 'Settings', end: false },
 ];
 

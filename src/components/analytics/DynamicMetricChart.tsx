@@ -57,7 +57,7 @@ function tooltipFormatter(value: unknown, metric: MetricType, unit: string): [st
 
 export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false, rangeStart, rangeEnd }) => {
   const { unit } = useSettings();
-  const [metric, setMetric] = useState<MetricType>('volume');
+  const [metric, setMetric] = useState<MetricType>('duration');
 
   const cfg = METRICS.find(m => m.key === metric)!;
 

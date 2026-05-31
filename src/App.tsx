@@ -7,6 +7,7 @@ import { Workouts } from './pages/Workouts';
 import { PersonalRecords } from './pages/PersonalRecords';
 import { ExerciseDetail } from './pages/ExerciseDetail';
 import { Analytics } from './pages/Analytics';
+import { MonthlyReports } from './pages/MonthlyReports';
 import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useAuth } from './context/AuthContext';
@@ -51,6 +52,7 @@ function AuthedApp() {
         <Route path="records" element={<PersonalRecords workouts={workouts} />} />
         <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
         <Route path="analytics" element={<Analytics workouts={workouts} />} />
+        <Route path="monthly" element={<MonthlyReports workouts={workouts} />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

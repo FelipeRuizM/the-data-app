@@ -5,6 +5,7 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
+import './WorkoutCalendar.css';
 
 interface WorkoutInfo {
   title: string;
@@ -20,6 +21,9 @@ interface PopoverState {
 interface Props {
   // Receives the full unfiltered workout list so any month is navigable
   workouts: TaggedWorkout[];
+  // When provided, the calendar locks to this month and hides its own nav —
+  // the parent (e.g. Monthly Reports) controls the month instead.
+  month?: Date;
 }
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -31,11 +35,21 @@ const CATEGORY_COLORS: Record<string, string> = {
   Mixed: '#FF85B3',
 };
 
-export const WorkoutCalendar: React.FC<Props> = ({ workouts }) => {
-  const [viewMonth, setViewMonth]     = useState(() => startOfMonth(new Date()));
+export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
+  const controlled = month !== undefined;
+  const [viewMonth, setViewMonth]     = useState(() => startOfMonth(month ?? new Date()));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [popover, setPopover]         = useState<PopoverState | null>(null);
   const containerRef                  = useRef<HTMLDivElement>(null);
+
+  // Follow the parent-controlled month when supplied.
+  useEffect(() => {
+    if (month !== undefined) {
+      setViewMonth(startOfMonth(month));
+      setSelectedKey(null);
+      setPopover(null);
+    }
+  }, [month]);
 
   // ── Build date → sessions map (deduped by workout id) ──────────
   const workoutMap = useMemo(() => {
@@ -118,15 +132,19 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts }) => {
       ref={containerRef}
       onClick={() => { setSelectedKey(null); setPopover(null); }}
     >
-      {/* ── Month navigation ─────────────────────────────────── */}
-      <div className="cal-nav">
-        <button className="cal-nav-btn" onClick={e => { e.stopPropagation(); goPrev(); }}>
-          <ChevronLeft size={15} />
-        </button>
+      {/* ── Month navigation (hidden when parent-controlled) ──── */}
+      <div className="cal-nav" style={controlled ? { justifyContent: 'center' } : undefined}>
+        {!controlled && (
+          <button className="cal-nav-btn" onClick={e => { e.stopPropagation(); goPrev(); }}>
+            <ChevronLeft size={15} />
+          </button>
+        )}
         <span className="cal-month-title">{format(viewMonth, 'MMMM yyyy')}</span>
-        <button className="cal-nav-btn" onClick={e => { e.stopPropagation(); goNext(); }}>
-          <ChevronRight size={15} />
-        </button>
+        {!controlled && (
+          <button className="cal-nav-btn" onClick={e => { e.stopPropagation(); goNext(); }}>
+            <ChevronRight size={15} />
+          </button>
+        )}
       </div>
 
       {/* ── Calendar grid ────────────────────────────────────── */}
