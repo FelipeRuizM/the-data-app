@@ -131,17 +131,6 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
   const { getMuscleGroup } = useExercises();
   const { runs } = useRuns();
 
-  // ── All-time overview totals (lifts + runs combined) ─────────────────────
-  const overall = useMemo(() => {
-    const sessions = groupWorkoutSessions(workouts);
-    const liftSeconds = sessions.reduce((s, x) => s + x.durSeconds, 0);
-    const runSeconds = runs.reduce((s, r) => s + r.durationSeconds, 0);
-    return {
-      count: sessions.length + runs.length,
-      minutes: Math.round((liftSeconds + runSeconds) / 60),
-    };
-  }, [workouts, runs]);
-
   // ── Unique exercise list for the picker ──────────────────────────────────
   const uniqueExercises = useMemo<string[]>(() => {
     const s = new Set(workouts.map(w => w.exerciseTitle));
@@ -197,6 +186,20 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     () => applyChartFilters(dateFiltered, filters, getMuscleGroup),
     [dateFiltered, filters, getMuscleGroup],
   );
+
+  // ── Combined overview totals (lifts + runs), honoring the active filters.
+  //    Lifts respect the full filter set; runs respect the time range only
+  //    (they have no category/muscle/exercise to filter on). ──────────────────
+  const overall = useMemo(() => {
+    const sessions = groupWorkoutSessions(filteredWorkouts);
+    const liftSeconds = sessions.reduce((s, x) => s + x.durSeconds, 0);
+    const rangeRuns = rangeStart ? runs.filter(r => r.startTime >= rangeStart) : runs;
+    const runSeconds = rangeRuns.reduce((s, r) => s + r.durationSeconds, 0);
+    return {
+      count: sessions.length + rangeRuns.length,
+      minutes: Math.round((liftSeconds + runSeconds) / 60),
+    };
+  }, [filteredWorkouts, runs, rangeStart]);
 
   // ── Key metrics ──────────────────────────────────────────────────────────
   const metrics = useMemo(() => {
@@ -367,7 +370,9 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Weekly Streak</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span className="metric-value">{streak}</span>
+            <span className="metric-value">
+              <span role="img" aria-label="streak" style={{ marginRight: '4px' }}>🔥</span>{streak}
+            </span>
             <span className="metric-unit">{streak === 1 ? 'WEEK' : 'WEEKS'}</span>
           </div>
         </div>

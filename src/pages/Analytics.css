@@ -501,6 +501,12 @@
   .analytics-calendar-row {
     grid-template-columns: 1fr;
   }
+
+  /* Stacked, the row no longer has a sibling to size against, so the radar
+     Card's height:100% collapses — give it a real height instead. */
+  .analytics-calendar-row .card {
+    height: 400px !important;
+  }
 }
 
 /* ── Mobile ────────────────────────────────────────────────────── */

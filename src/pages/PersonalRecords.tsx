@@ -181,7 +181,7 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
     <div className="pr-container">
       <div className="pr-header">
         <Trophy size={32} color="var(--accent-pink-main)" />
-        <h2>Trophy Room</h2>
+        <h2>Records</h2>
       </div>
 
       <ExerciseSearch exercises={uniqueExercises} />

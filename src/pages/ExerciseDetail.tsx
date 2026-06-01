@@ -83,7 +83,7 @@ export const ExerciseDetail: React.FC<Props> = ({ workouts }) => {
   return (
     <div className="exd-page" style={{ animation: 'fadeIn 0.5s ease-out' }}>
       <Link to="/records" className="exd-back">
-        <ChevronLeft size={16} /> Trophy Room
+        <ChevronLeft size={16} /> Records
       </Link>
 
       <div className="exd-header">
