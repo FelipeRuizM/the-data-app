@@ -198,10 +198,14 @@ export const SetSeriesChart: React.FC<Props> = ({ workouts }) => {
               tickFormatter={(v: number) => dateForIndex.get(Number(v)) ?? ''}
             />
             {/* Each metric scales on its own hidden axis so the differently-sized
-                lines all fill the chart height and overlap for shape comparison. */}
-            <YAxis yAxisId="reps"   hide domain={['auto', 'auto']} />
-            <YAxis yAxisId="weight" hide domain={['auto', 'auto']} />
-            <YAxis yAxisId="volume" hide domain={['auto', 'auto']} />
+                lines all fill the chart height and overlap for shape comparison.
+                Anchoring the low end at 0 (rather than the data minimum) keeps the
+                variance honest — small absolute changes no longer fill the height
+                and look dramatic. Reps default to a 0–15 band, extending only if a
+                higher-rep set is logged. */}
+            <YAxis yAxisId="reps"   hide domain={[0, (dataMax: number) => Math.max(15, Math.ceil(dataMax))]} />
+            <YAxis yAxisId="weight" hide domain={[0, 'auto']} />
+            <YAxis yAxisId="volume" hide domain={[0, 'auto']} />
             <Tooltip
               cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }}
               content={<SetTooltip unit={unit} visible={visible} />}

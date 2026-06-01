@@ -14,10 +14,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, isOpen 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
     { to: '/workouts', icon: Activity, label: 'Workouts' },
+    { to: '/running', icon: Footprints, label: 'Running' },
     { to: '/records', icon: Trophy, label: 'Trophy Room' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/monthly', icon: CalendarDays, label: 'Monthly Reports' },
-    { to: '/running', icon: Footprints, label: 'Running' },
   ];
 
   return (

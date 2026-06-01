@@ -42,6 +42,9 @@ const emptyForm = () => ({
   distance: '',
   pace: '',
   time: '',
+  elevationGain: '',
+  maxElevation: '',
+  steps: '',
   dateTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   description: '',
 });
@@ -82,6 +85,9 @@ export const Running: React.FC = () => {
       distance: run.distanceKm ? String(run.distanceKm) : '',
       pace: run.pace,
       time: formatDuration(run.durationSeconds),
+      elevationGain: run.elevationGainM ? String(run.elevationGainM) : '',
+      maxElevation: run.maxElevationM ? String(run.maxElevationM) : '',
+      steps: run.steps ? String(run.steps) : '',
       dateTime: format(run.startTime, "yyyy-MM-dd'T'HH:mm"),
       description: run.description,
     });
@@ -100,6 +106,9 @@ export const Running: React.FC = () => {
       distance_km: Number(form.distance) || 0,
       duration_seconds: parseTimeToSeconds(form.time),
       pace: form.pace.trim(),
+      elevation_gain_m: Number(form.elevationGain) || 0,
+      max_elevation_m: Number(form.maxElevation) || 0,
+      steps: Number(form.steps) || 0,
       description: form.description.trim(),
     };
 
@@ -181,7 +190,7 @@ export const Running: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div style={labelStyle}>Total Time</div>
+          <div style={labelStyle}>Total Moving Time</div>
           <div style={{ fontFamily: 'Inter', fontSize: '32px', fontWeight: 'bold' }}>
             {formatDuration(stats.totalTime)}
           </div>
@@ -246,11 +255,50 @@ export const Running: React.FC = () => {
             </div>
 
             <div>
-              <label style={labelStyle}>Time (mm:ss or h:mm:ss)</label>
+              <label style={labelStyle}>Moving time</label>
               <input
                 value={form.time}
                 onChange={(e) => setField('time', e.target.value)}
                 placeholder="27:30"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Elevation Gain (m)</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={form.elevationGain}
+                onChange={(e) => setField('elevationGain', e.target.value)}
+                placeholder="250"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Max Elevation (m)</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={form.maxElevation}
+                onChange={(e) => setField('maxElevation', e.target.value)}
+                placeholder="1200"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Steps</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={form.steps}
+                onChange={(e) => setField('steps', e.target.value)}
+                placeholder="6500"
                 style={inputStyle}
               />
             </div>
@@ -336,6 +384,9 @@ export const Running: React.FC = () => {
                     <span>{run.distanceKm.toFixed(2)} km</span>
                     <span>{formatDuration(run.durationSeconds)}</span>
                     {run.pace && <span>{run.pace}</span>}
+                    {run.elevationGainM > 0 && <span>↑ {run.elevationGainM} m</span>}
+                    {run.maxElevationM > 0 && <span>⛰ {run.maxElevationM} m</span>}
+                    {run.steps > 0 && <span>{run.steps.toLocaleString()} steps</span>}
                     <span style={{ color: 'var(--text-muted)' }}>{format(run.startTime, 'd MMM yyyy, HH:mm')}</span>
                   </div>
                   {run.description && (

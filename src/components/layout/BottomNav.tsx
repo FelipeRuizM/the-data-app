@@ -6,9 +6,9 @@ import './BottomNav.css';
 const items = [
   { to: '/',          icon: LayoutDashboard, label: 'Home',     end: true  },
   { to: '/workouts',  icon: Activity,        label: 'Workouts', end: false },
+  { to: '/running',   icon: Footprints,      label: 'Running',  end: false },
   { to: '/records',   icon: Trophy,          label: 'Records',  end: false },
   { to: '/monthly',   icon: CalendarDays,    label: 'Reports',  end: false },
-  { to: '/running',   icon: Footprints,      label: 'Running',  end: false },
   { to: '/settings',  icon: Settings,        label: 'Settings', end: false },
 ];
 

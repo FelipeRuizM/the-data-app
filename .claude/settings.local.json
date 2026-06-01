@@ -18,7 +18,8 @@
       "WebFetch(domain:hevy.com)",
       "Bash(node scripts/importHevy.mjs 0IPJCabQJql --raw)",
       "Bash(node -e \"console.log\\('node ok', process.version\\)\")",
-      "Bash(node -e \"console.log\\('node', process.version\\)\")"
+      "Bash(node -e \"console.log\\('node', process.version\\)\")",
+      "PowerShell(npx tsc --noEmit)"
     ]
   }
 }

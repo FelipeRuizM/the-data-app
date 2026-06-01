@@ -16,6 +16,9 @@ export interface Run {
   distanceKm: number;
   durationSeconds: number;
   pace: string;
+  elevationGainM: number;
+  maxElevationM: number;
+  steps: number;
   description: string;
 }
 
@@ -69,6 +72,9 @@ export const useRuns = () => {
             distanceKm: Number(item.distance_km) || 0,
             durationSeconds: Number(item.duration_seconds) || 0,
             pace: item.pace || '',
+            elevationGainM: Number(item.elevation_gain_m) || 0,
+            maxElevationM: Number(item.max_elevation_m) || 0,
+            steps: Number(item.steps) || 0,
             description: item.description || '',
           }))
           .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
