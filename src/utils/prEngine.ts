@@ -76,3 +76,54 @@ export const calculatePRs = (workouts: TaggedWorkout[]): PRData[] => {
 };
 
 export { REP_BASED_EXERCISES };
+
+// ── Per-set PR detection ──────────────────────────────────────
+// Flags the specific sets that, at the moment they were logged, set a new
+// all-time record for an exercise — either the heaviest weight or the most
+// volume (weight × reps) in a single set. Used to badge sets in the workout
+// history. The very first set of an exercise establishes the baseline and is
+// not flagged (you can only "break" a record that already exists).
+
+export interface SetPR {
+  weight: boolean; // heaviest single-set weight to date
+  volume: boolean; // most single-set volume to date
+}
+
+/** Stable key for a logged set: session id + exercise + set index. */
+export const setPRKey = (sessionId: string, exerciseTitle: string, setIndex: number) =>
+  `${sessionId}|${exerciseTitle}|${setIndex}`;
+
+export const computeSetPRs = (workouts: TaggedWorkout[]): Map<string, SetPR> => {
+  // Bucket sets per exercise, ignoring empty or failed-at-zero attempts.
+  const byExercise = new Map<string, TaggedWorkout[]>();
+  workouts.forEach(w => {
+    if (w.weightKg <= 0 || w.reps <= 0) return;
+    if (w.setType === 'failure' && w.reps === 0) return;
+    const arr = byExercise.get(w.exerciseTitle) ?? [];
+    arr.push(w);
+    byExercise.set(w.exerciseTitle, arr);
+  });
+
+  const result = new Map<string, SetPR>();
+
+  byExercise.forEach(sets => {
+    sets.sort((a, b) => a.startTime.getTime() - b.startTime.getTime() || a.setIndex - b.setIndex);
+    let maxWeight = 0;
+    let maxVolume = 0;
+
+    sets.forEach(s => {
+      const volume = s.weightKg * s.reps;
+      const weightPR = maxWeight > 0 && s.weightKg > maxWeight;
+      const volumePR = maxVolume > 0 && volume > maxVolume;
+
+      if (s.weightKg > maxWeight) maxWeight = s.weightKg;
+      if (volume > maxVolume) maxVolume = volume;
+
+      if (weightPR || volumePR) {
+        result.set(setPRKey(s.id, s.exerciseTitle, s.setIndex), { weight: weightPR, volume: volumePR });
+      }
+    });
+  });
+
+  return result;
+};

@@ -19,7 +19,9 @@
       "Bash(node scripts/importHevy.mjs 0IPJCabQJql --raw)",
       "Bash(node -e \"console.log\\('node ok', process.version\\)\")",
       "Bash(node -e \"console.log\\('node', process.version\\)\")",
-      "PowerShell(npx tsc --noEmit)"
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(npx tsc -p tsconfig.app.json --noEmit)",
+      "PowerShell(npm run build 2>&1)"
     ]
   }
 }

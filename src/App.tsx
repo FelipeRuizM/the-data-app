@@ -4,6 +4,8 @@ import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { Workouts } from './pages/Workouts';
+import { AddWorkout } from './pages/AddWorkout';
+import { AddRun } from './pages/AddRun';
 import { PersonalRecords } from './pages/PersonalRecords';
 import { ExerciseDetail } from './pages/ExerciseDetail';
 import { Analytics } from './pages/Analytics';
@@ -51,6 +53,8 @@ function AuthedApp() {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Dashboard workouts={workouts} />} />
         <Route path="workouts" element={<Workouts workouts={workouts} />} />
+        <Route path="add/workout" element={<AddWorkout workouts={workouts} />} />
+        <Route path="add/run" element={<AddRun />} />
         <Route path="records" element={<PersonalRecords workouts={workouts} />} />
         <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
         <Route path="analytics" element={<Analytics workouts={workouts} />} />
