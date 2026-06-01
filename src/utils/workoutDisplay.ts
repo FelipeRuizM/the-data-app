@@ -1,4 +1,4 @@
-import { Dumbbell, Cable, Footprints, Activity, type LucideIcon } from 'lucide-react';
+import { Dumbbell, Cable, Footprints, Activity, Trophy, TrendingUp, Gauge, type LucideIcon } from 'lucide-react';
 
 // ── Set types ─────────────────────────────────────────────────
 export type SetType = 'normal' | 'warmup' | 'dropset' | 'failure' | 'feeder' | 'working';
@@ -39,3 +39,12 @@ export const CATEGORY_STYLES: Record<string, { color: string; icon: LucideIcon }
 
 export const getCategoryStyle = (category?: string) =>
   CATEGORY_STYLES[category ?? 'Mixed'] ?? CATEGORY_STYLES.Mixed;
+
+// ── PR record types (shared badge styling) ────────────────────
+export type PRType = 'weight' | 'volume' | 'oneRM';
+
+export const PR_TYPES: { key: PRType; label: string; short: string; color: string; icon: LucideIcon; description: string }[] = [
+  { key: 'weight', label: 'Weight', short: 'PR',  color: '#FFC400', icon: Trophy,     description: 'Heaviest weight ever for this exercise' },
+  { key: 'oneRM',  label: '1RM',    short: '1RM', color: '#34D399', icon: Gauge,      description: 'Best estimated one-rep max for this exercise' },
+  { key: 'volume', label: 'Volume', short: 'Vol', color: '#60A5FA', icon: TrendingUp, description: 'Most volume ever in a single set for this exercise' },
+];

@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, format, isSameMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { getMonthlySummary, getMonthlySeries } from '../utils/workoutUtils';
+import { computePRAchievements, estimateOneRM, type PRAchievement, type PRType } from '../utils/prEngine';
+import { PR_TYPES } from '../utils/workoutDisplay';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
 import { MuscleRadarChart } from '../components/analytics/MuscleRadarChart';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
@@ -64,6 +66,137 @@ const StatCard: React.FC<{
   );
 };
 
+// ── Records section: PRs broken in the selected month ─────────
+const RECORD_ORDER: PRType[] = ['weight', 'oneRM', 'volume'];
+
+/** The achieved value for a given record type, in kg. */
+const recordValueKg = (a: PRAchievement, type: PRType): number =>
+  type === 'weight' ? a.weightKg
+  : type === 'volume' ? a.weightKg * a.reps
+  : estimateOneRM(a.weightKg, a.reps);
+
+const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ workouts, month }) => {
+  const { unit } = useSettings();
+  const multiplier = unit === 'lbs' ? 2.20462 : 1;
+
+  const summary = useMemo(() => {
+    const monthPRs = computePRAchievements(workouts).filter(a => isSameMonth(a.date, month));
+
+    // For each exercise + type, keep only the heaviest achievement.
+    const best = new Map<string, Map<PRType, PRAchievement>>();
+    monthPRs.forEach(a => {
+      RECORD_ORDER.forEach(type => {
+        if (!a[type]) return;
+        const perType = best.get(a.exerciseTitle) ?? new Map<PRType, PRAchievement>();
+        const cur = perType.get(type);
+        if (!cur || recordValueKg(a, type) > recordValueKg(cur, type)) perType.set(type, a);
+        best.set(a.exerciseTitle, perType);
+      });
+    });
+
+    const totals: Record<PRType, number> = { weight: 0, volume: 0, oneRM: 0 };
+    const rows = Array.from(best.entries())
+      .map(([exerciseTitle, perType]) => {
+        const records = RECORD_ORDER.filter(t => perType.has(t)).map(type => ({ type, a: perType.get(type)! }));
+        records.forEach(r => { totals[r.type] += 1; });
+        return { exerciseTitle, records };
+      })
+      .sort((a, b) => b.records.length - a.records.length || a.exerciseTitle.localeCompare(b.exerciseTitle));
+
+    const total = totals.weight + totals.volume + totals.oneRM;
+    return { total, totals, rows };
+  }, [workouts, month]);
+
+  const typeChip = (type: PRType, count: number) => {
+    const meta = PR_TYPES.find(t => t.key === type)!;
+    const Icon = meta.icon;
+    return (
+      <span
+        key={type}
+        title={meta.description}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '5px',
+          background: `${meta.color}1F`, color: meta.color,
+          border: `1px solid ${meta.color}59`, borderRadius: '999px',
+          padding: '3px 10px', fontSize: '12px', fontWeight: 700, fontFamily: 'Inter',
+        }}
+      >
+        <Icon size={13} /> {meta.label} ×{count}
+      </span>
+    );
+  };
+
+  const recordLine = (type: PRType, a: PRAchievement) => {
+    const meta = PR_TYPES.find(t => t.key === type)!;
+    const Icon = meta.icon;
+    const value = Math.round(recordValueKg(a, type) * multiplier);
+    const setWeight = Math.round(a.weightKg * multiplier);
+    return (
+      <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'Inter', fontSize: '13px', flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: meta.color, fontWeight: 700, minWidth: '74px' }}>
+          <Icon size={14} /> {meta.label}
+        </span>
+        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+          {value.toLocaleString()} {unit}
+        </span>
+        <span style={{ color: 'var(--text-muted)' }}>
+          {setWeight.toLocaleString()} {unit} × {a.reps} reps
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: summary.total > 0 ? '20px' : '0' }}>
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+          background: 'rgba(255,196,0,0.12)', border: '1px solid rgba(255,196,0,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Trophy size={22} color="#FFC400" />
+        </div>
+        <div>
+          <h3 style={{ fontFamily: 'Outfit', margin: 0, fontSize: '18px' }}>Records</h3>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'Inter' }}>
+            {summary.total > 0
+              ? `${summary.total} personal record${summary.total > 1 ? 's' : ''} broken this month`
+              : 'No personal records broken this month'}
+          </span>
+        </div>
+      </div>
+
+      {summary.total > 0 && (
+        <>
+          {/* Totals by type */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+            {RECORD_ORDER.filter(k => summary.totals[k] > 0).map(k => typeChip(k, summary.totals[k]))}
+          </div>
+
+          {/* Per-exercise breakdown */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {summary.rows.map(row => (
+              <div
+                key={row.exerciseTitle}
+                style={{
+                  display: 'flex', flexDirection: 'column', gap: '10px',
+                  padding: '14px', borderRadius: '12px',
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <span style={{ fontFamily: 'Outfit', fontSize: '15px', fontWeight: 600 }}>
+                  {row.exerciseTitle}
+                </span>
+                {row.records.map(r => recordLine(r.type, r.a))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+};
+
 export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const { unit } = useSettings();
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
@@ -120,6 +253,11 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
       {/* Cross-month trend (toggle workouts / duration / volume / sets) */}
       <div className="mr-section">
         <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
+      </div>
+
+      {/* Records broken this month */}
+      <div className="mr-section">
+        <RecordsSection workouts={workouts} month={month} />
       </div>
 
       {cur.workoutCount === 0 ? (

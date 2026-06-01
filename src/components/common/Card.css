@@ -16,17 +16,8 @@
 }
 
 .card:hover {
-  /* Dynamic border utilizing main active pink */
-  border-color: var(--accent-pink-main);
-  
-  /* Multi-layered glow using Hex Alpha support on modern browsers 
-     66 = ~40% opacity, 33 = ~20% opacity over the base solid #FF2E93 */
-  box-shadow: 
-    var(--glass-shadow),
-    0 0 15px #FF2E9366, 
-    0 0 30px #FF2E9333;
-    
-  /* Tactile lift */
-  transform: translateY(-2px);
+  /* Subtle, neutral hover — a gentle border lift instead of a pink glow */
+  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--glass-hover-bg);
   z-index: 10;
 }

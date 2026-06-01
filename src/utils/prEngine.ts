@@ -79,21 +79,46 @@ export { REP_BASED_EXERCISES };
 
 // ── Per-set PR detection ──────────────────────────────────────
 // Flags the specific sets that, at the moment they were logged, set a new
-// all-time record for an exercise — either the heaviest weight or the most
-// volume (weight × reps) in a single set. Used to badge sets in the workout
-// history. The very first set of an exercise establishes the baseline and is
-// not flagged (you can only "break" a record that already exists).
+// all-time record for an exercise. Three independent records are tracked:
+//   • weight — heaviest single-set weight
+//   • volume — most weight × reps in a single set
+//   • 1RM    — highest estimated one-rep-max (Epley) in a single set
+// Used to badge sets in the workout history and to summarise records per month.
+// The very first set of an exercise establishes the baseline and is NOT flagged
+// (you can only "break" a record that already exists).
+
+export type PRType = 'weight' | 'volume' | 'oneRM';
 
 export interface SetPR {
-  weight: boolean; // heaviest single-set weight to date
-  volume: boolean; // most single-set volume to date
+  weight: boolean;
+  volume: boolean;
+  oneRM: boolean;
 }
+
+export interface PRAchievement extends SetPR {
+  key: string;          // setPRKey — links back to the badged set
+  exerciseTitle: string;
+  date: Date;
+  weightKg: number;
+  reps: number;
+}
+
+/** Epley estimated one-rep max. */
+export const estimateOneRM = (weightKg: number, reps: number) => weightKg * (1 + reps / 30);
 
 /** Stable key for a logged set: session id + exercise + set index. */
 export const setPRKey = (sessionId: string, exerciseTitle: string, setIndex: number) =>
   `${sessionId}|${exerciseTitle}|${setIndex}`;
 
-export const computeSetPRs = (workouts: TaggedWorkout[]): Map<string, SetPR> => {
+/**
+ * Walks each exercise session-by-session in chronological order and returns one
+ * entry per set that broke at least one record. Each record type (weight /
+ * volume / 1RM) can be broken at most ONCE per exercise per workout — only the
+ * session's single best set for that metric is flagged, and only if it beats the
+ * all-time best from before this session. The exercise's first session merely
+ * establishes the baseline, so it never produces PRs.
+ */
+export const computePRAchievements = (workouts: TaggedWorkout[]): PRAchievement[] => {
   // Bucket sets per exercise, ignoring empty or failed-at-zero attempts.
   const byExercise = new Map<string, TaggedWorkout[]>();
   workouts.forEach(w => {
@@ -104,26 +129,77 @@ export const computeSetPRs = (workouts: TaggedWorkout[]): Map<string, SetPR> => 
     byExercise.set(w.exerciseTitle, arr);
   });
 
-  const result = new Map<string, SetPR>();
+  const achievements: PRAchievement[] = [];
 
   byExercise.forEach(sets => {
-    sets.sort((a, b) => a.startTime.getTime() - b.startTime.getTime() || a.setIndex - b.setIndex);
+    // Group the exercise's sets into sessions (by session id), oldest first.
+    const sessions = new Map<string, { date: Date; sets: TaggedWorkout[] }>();
+    sets.forEach(s => {
+      const sess = sessions.get(s.id) ?? { date: s.startTime, sets: [] };
+      sess.sets.push(s);
+      sessions.set(s.id, sess);
+    });
+    const ordered = Array.from(sessions.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+
     let maxWeight = 0;
     let maxVolume = 0;
+    let maxOneRM = 0;
 
-    sets.forEach(s => {
-      const volume = s.weightKg * s.reps;
-      const weightPR = maxWeight > 0 && s.weightKg > maxWeight;
-      const volumePR = maxVolume > 0 && volume > maxVolume;
+    ordered.forEach(({ sets: sessionSets }) => {
+      // The session's best set for each metric.
+      let bestWeight = sessionSets[0];
+      let bestVolume = sessionSets[0];
+      let bestOneRM  = sessionSets[0];
+      sessionSets.forEach(s => {
+        if (s.weightKg > bestWeight.weightKg) bestWeight = s;
+        if (s.weightKg * s.reps > bestVolume.weightKg * bestVolume.reps) bestVolume = s;
+        if (estimateOneRM(s.weightKg, s.reps) > estimateOneRM(bestOneRM.weightKg, bestOneRM.reps)) bestOneRM = s;
+      });
 
-      if (s.weightKg > maxWeight) maxWeight = s.weightKg;
-      if (volume > maxVolume) maxVolume = volume;
+      const sWeight = bestWeight.weightKg;
+      const sVolume = bestVolume.weightKg * bestVolume.reps;
+      const sOneRM  = estimateOneRM(bestOneRM.weightKg, bestOneRM.reps);
 
-      if (weightPR || volumePR) {
-        result.set(setPRKey(s.id, s.exerciseTitle, s.setIndex), { weight: weightPR, volume: volumePR });
-      }
+      const weightPR = maxWeight > 0 && sWeight > maxWeight;
+      const volumePR = maxVolume > 0 && sVolume > maxVolume;
+      const oneRMPR  = maxOneRM > 0 && sOneRM > maxOneRM;
+
+      // Attribute the PR(s) to the achieving set(s); one set may earn several.
+      const flagsBySet = new Map<TaggedWorkout, SetPR>();
+      const flagsFor = (s: TaggedWorkout) => {
+        let f = flagsBySet.get(s);
+        if (!f) { f = { weight: false, volume: false, oneRM: false }; flagsBySet.set(s, f); }
+        return f;
+      };
+      if (weightPR) flagsFor(bestWeight).weight = true;
+      if (volumePR) flagsFor(bestVolume).volume = true;
+      if (oneRMPR)  flagsFor(bestOneRM).oneRM  = true;
+
+      flagsBySet.forEach((flags, s) => {
+        achievements.push({
+          key: setPRKey(s.id, s.exerciseTitle, s.setIndex),
+          exerciseTitle: s.exerciseTitle,
+          date: s.startTime,
+          weightKg: s.weightKg,
+          reps: s.reps,
+          ...flags,
+        });
+      });
+
+      maxWeight = Math.max(maxWeight, sWeight);
+      maxVolume = Math.max(maxVolume, sVolume);
+      maxOneRM  = Math.max(maxOneRM, sOneRM);
     });
   });
 
+  return achievements;
+};
+
+/** Map of set key → which records that set broke (for badging the history). */
+export const computeSetPRs = (workouts: TaggedWorkout[]): Map<string, SetPR> => {
+  const result = new Map<string, SetPR>();
+  computePRAchievements(workouts).forEach(a => {
+    result.set(a.key, { weight: a.weight, volume: a.volume, oneRM: a.oneRM });
+  });
   return result;
 };

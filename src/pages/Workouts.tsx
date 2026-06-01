@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Pencil, Trophy, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Trophy } from 'lucide-react';
 import { ref, update } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { groupWorkoutSessions, type WorkoutSession } from '../utils/sessions';
 import {
   SET_TYPES,
+  PR_TYPES,
   getSetLabel,
   getSetColor,
   getSetTypeName,
@@ -17,39 +18,43 @@ import {
   type SetType,
 } from '../utils/workoutDisplay';
 import { computeSetPRs, setPRKey, type SetPR } from '../utils/prEngine';
+import { labelStyle } from '../styles/formStyles';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
+
+const fmtDuration = (min: number) => {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
+const statValueStyle: React.CSSProperties = {
+  fontFamily: 'Inter',
+  fontSize: '32px',
+  fontWeight: 'bold',
+  color: 'var(--text-primary)',
+};
 
 // ── PR badge shown next to a set that set a new record ──────────
 const PRBadge: React.FC<{ pr: SetPR }> = ({ pr }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-    {pr.weight && (
-      <span
-        title="Heaviest weight ever for this exercise"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          background: 'rgba(255,196,0,0.12)', color: '#FFC400',
-          border: '1px solid rgba(255,196,0,0.35)', borderRadius: '999px',
-          padding: '2px 8px', fontSize: '10px', fontWeight: 700,
-          fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.04em',
-        }}
-      >
-        <Trophy size={11} /> PR
-      </span>
-    )}
-    {pr.volume && (
-      <span
-        title="Most volume ever in a single set for this exercise"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          background: 'rgba(96,165,250,0.12)', color: '#60A5FA',
-          border: '1px solid rgba(96,165,250,0.35)', borderRadius: '999px',
-          padding: '2px 8px', fontSize: '10px', fontWeight: 700,
-          fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.04em',
-        }}
-      >
-        <TrendingUp size={11} /> Vol
-      </span>
-    )}
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }}>
+    {PR_TYPES.filter(t => pr[t.key]).map(t => {
+      const Icon = t.icon;
+      return (
+        <span
+          key={t.key}
+          title={t.description}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            background: `${t.color}1F`, color: t.color,
+            border: `1px solid ${t.color}59`, borderRadius: '999px',
+            padding: '2px 8px', fontSize: '10px', fontWeight: 700,
+            fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.04em',
+          }}
+        >
+          <Icon size={11} /> {t.short}
+        </span>
+      );
+    })}
   </span>
 );
 
@@ -80,12 +85,13 @@ const WorkoutCard: React.FC<{
     }
   };
 
-  // Count PRs in this session for a header badge.
+  // Count records broken in this session (each type counts) for a header badge.
   const prCount = useMemo(() => {
     let n = 0;
     session.exercises.forEach((sets, exTitle) => {
       sets.forEach(s => {
-        if (setPRs.has(setPRKey(s.id, exTitle, s.setIndex))) n++;
+        const pr = setPRs.get(setPRKey(s.id, exTitle, s.setIndex));
+        if (pr) n += (pr.weight ? 1 : 0) + (pr.volume ? 1 : 0) + (pr.oneRM ? 1 : 0);
       });
     });
     return n;
@@ -279,8 +285,41 @@ export const Workouts: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) 
   const sessions = useMemo(() => groupWorkoutSessions(workouts), [workouts]);
   const setPRs = useMemo(() => computeSetPRs(workouts), [workouts]);
 
+  const stats = useMemo(() => {
+    const totalSeconds = sessions.reduce((s, x) => s + x.durSeconds, 0);
+    const totalReps = workouts.reduce((s, w) => s + w.reps, 0);
+    return {
+      totalLifts: sessions.length,
+      totalMinutes: Math.round(totalSeconds / 60),
+      totalReps,
+    };
+  }, [sessions, workouts]);
+
   return (
     <div style={{ padding: '24px', animation: 'fadeIn 0.5s ease-out', paddingBottom: '64px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+
+      {/* Stats */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '16px',
+          marginBottom: '32px',
+        }}
+      >
+        <Card>
+          <div style={labelStyle}>Total Lifts</div>
+          <div style={statValueStyle}>{stats.totalLifts.toLocaleString()}</div>
+        </Card>
+        <Card>
+          <div style={labelStyle}>Total Time Working Out</div>
+          <div style={statValueStyle}>{fmtDuration(stats.totalMinutes)}</div>
+        </Card>
+        <Card>
+          <div style={labelStyle}>Total Reps</div>
+          <div style={statValueStyle}>{stats.totalReps.toLocaleString()}</div>
+        </Card>
+      </div>
 
       <h2 style={{ marginBottom: '24px', letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>Workout History</h2>
 

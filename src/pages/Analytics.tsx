@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { subDays, subYears } from 'date-fns';
+import { subDays, subYears, startOfWeek, subWeeks, format } from 'date-fns';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { DynamicMetricChart } from '../components/analytics/DynamicMetricChart';
 import { FrequencyChart } from '../components/analytics/FrequencyChart';
@@ -10,6 +10,8 @@ import { MainExercises } from '../components/analytics/MainExercises';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
+import { useRuns } from '../hooks/useRuns';
+import { groupWorkoutSessions } from '../utils/sessions';
 import {
   applyChartFilters,
   MUSCLE_GROUPS,
@@ -17,6 +19,12 @@ import {
 } from '../utils/workoutUtils';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 import './Analytics.css';
+
+const fmtDuration = (min: number) => {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 
 type TimeRange = '30d' | '90d' | '180d' | '1y' | 'All';
 
@@ -121,6 +129,18 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
   });
   const { unit } = useSettings();
   const { getMuscleGroup } = useExercises();
+  const { runs } = useRuns();
+
+  // ── All-time overview totals (lifts + runs combined) ─────────────────────
+  const overall = useMemo(() => {
+    const sessions = groupWorkoutSessions(workouts);
+    const liftSeconds = sessions.reduce((s, x) => s + x.durSeconds, 0);
+    const runSeconds = runs.reduce((s, r) => s + r.durationSeconds, 0);
+    return {
+      count: sessions.length + runs.length,
+      minutes: Math.round((liftSeconds + runSeconds) / 60),
+    };
+  }, [workouts, runs]);
 
   // ── Unique exercise list for the picker ──────────────────────────────────
   const uniqueExercises = useMemo<string[]>(() => {
@@ -195,6 +215,26 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M`
     : v >= 1000    ? `${(v / 1000).toFixed(1)}k`
     : String(v);
+
+  // ── Weekly streak (all-time, consecutive active weeks ending at the most
+  //    recent workout's week) ──────────────────────────────────────────────
+  const streak = useMemo(() => {
+    if (workouts.length === 0) return 0;
+    const WEEK_OPTS = { weekStartsOn: 0 as const };
+    const weeks = new Set<string>();
+    let latest = 0;
+    workouts.forEach(w => {
+      weeks.add(format(startOfWeek(w.startTime, WEEK_OPTS), 'yyyy-MM-dd'));
+      latest = Math.max(latest, w.startTime.getTime());
+    });
+    let count = 0;
+    let cursor = startOfWeek(new Date(latest), WEEK_OPTS);
+    while (weeks.has(format(cursor, 'yyyy-MM-dd'))) {
+      count++;
+      cursor = subWeeks(cursor, 1);
+    }
+    return count;
+  }, [workouts]);
 
   // ── Filter helpers ───────────────────────────────────────────────────────
   const toggleCategory = (cat: string) =>
@@ -307,7 +347,11 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       <div className="analytics-metrics-row">
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Total Workouts</span>
-          <span className="metric-value">{metrics.totalWorkouts}</span>
+          <span className="metric-value">{overall.count.toLocaleString()}</span>
+        </div>
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Total Time</span>
+          <span className="metric-value">{fmtDuration(overall.minutes)}</span>
         </div>
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Total Volume</span>
@@ -319,6 +363,13 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Avg Reps / Set</span>
           <span className="metric-value">{metrics.avgReps}</span>
+        </div>
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Weekly Streak</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span className="metric-value">{streak}</span>
+            <span className="metric-unit">{streak === 1 ? 'WEEK' : 'WEEKS'}</span>
+          </div>
         </div>
       </div>
 

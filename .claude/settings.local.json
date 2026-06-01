@@ -21,7 +21,8 @@
       "Bash(node -e \"console.log\\('node', process.version\\)\")",
       "PowerShell(npx tsc --noEmit)",
       "PowerShell(npx tsc -p tsconfig.app.json --noEmit)",
-      "PowerShell(npm run build 2>&1)"
+      "PowerShell(npm run build 2>&1)",
+      "Bash(grep -iE \"^\\(gauge|zap|rocket|trending-up|trophy|medal|award|target|flame|crown\\).js$\")"
     ]
   }
 }
