@@ -9,10 +9,12 @@ import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useExercises } from '../context/ExercisesContext';
 import { useGyms } from '../context/GymsContext';
+import { usePeople } from '../context/PeopleContext';
 import { MUSCLE_GROUPS, getLastExerciseSession } from '../utils/workoutUtils';
 import { groupWorkoutSessions } from '../utils/sessions';
 import { SET_TYPES, getSetLabel, getSetColor, type SetType } from '../utils/workoutDisplay';
 import { Card } from '../components/common/Card';
+import { PeoplePicker } from '../components/common/PeoplePicker';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 
@@ -49,6 +51,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
   const uid = user?.uid;
   const { exercises: dbExercises, createExercise } = useExercises();
   const { gyms } = useGyms();
+  const { people: dbPeople } = usePeople();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editParam = searchParams.get('edit');
@@ -65,6 +68,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
   const [logGym, setLogGym]           = useState('');
   const [logHeartRate, setLogHeartRate] = useState('');
   const [logDescription, setLogDescription] = useState('');
+  const [logPeople, setLogPeople]     = useState<string[]>([]);
   const [logExercises, setLogExercises] = useState<LogExercise[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [showDropdown, setShowDropdown]     = useState(false);
@@ -131,6 +135,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
     setLogGym(session.gym || '');
     setLogHeartRate(session.avgHeartRate ? String(session.avgHeartRate) : '');
     setLogDescription(session.description || '');
+    setLogPeople(session.people || []);
     setLogExercises(exercises);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam, sessions.length]);
@@ -288,6 +293,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
       description: logDescription.trim(),
       gym: logGym,
       avg_heart_rate: Number(logHeartRate) || 0,
+      people: logPeople,
       exercises: logExercises.map(ex => ({
         exercise_title: ex.exerciseTitle,
         exercise_notes: ex.notes.trim(),
@@ -393,6 +399,14 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
                 onChange={e => setLogHeartRate(e.target.value)}
                 placeholder="optional"
                 style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Worked Out With</label>
+              <PeoplePicker
+                options={dbPeople.map(p => p.name)}
+                value={logPeople}
+                onChange={setLogPeople}
               />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>

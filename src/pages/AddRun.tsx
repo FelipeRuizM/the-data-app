@@ -7,9 +7,11 @@ import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useRuns, RUN_TYPES, type RunType } from '../hooks/useRuns';
 import { useGyms } from '../context/GymsContext';
+import { usePeople } from '../context/PeopleContext';
 import { Card } from '../components/common/Card';
+import { PeoplePicker } from '../components/common/PeoplePicker';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
-import { parseTimeToSeconds, formatDuration } from '../utils/runFormat';
+import { parseTimeToSeconds, formatDuration, runDifficulty } from '../utils/runFormat';
 
 const emptyForm = () => ({
   title: '',
@@ -31,11 +33,14 @@ export const AddRun: React.FC = () => {
   const { canWrite, dataUid } = useAuth();
   const { runs } = useRuns();
   const { gyms } = useGyms();
+  const { people: dbPeople } = usePeople();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editParam = searchParams.get('edit');
 
   const [form, setForm] = useState(emptyForm);
+  const [runPeople, setRunPeople] = useState<string[]>([]);
+  const [difficulty, setDifficulty] = useState(5);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -60,6 +65,8 @@ export const AddRun: React.FC = () => {
       heartRate: run.avgHeartRate ? String(run.avgHeartRate) : '',
       calories: run.calories ? String(run.calories) : '',
     });
+    setRunPeople(run.people || []);
+    setDifficulty(run.difficulty || 5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam, runs.length]);
 
@@ -85,6 +92,8 @@ export const AddRun: React.FC = () => {
       location: form.location,
       avg_heart_rate: Number(form.heartRate) || 0,
       calories: Number(form.calories) || 0,
+      people: runPeople,
+      difficulty,
     };
 
     setIsSaving(true);
@@ -295,6 +304,39 @@ export const AddRun: React.FC = () => {
               value={form.dateTime}
               onChange={(e) => setField('dateTime', e.target.value)}
               style={inputStyle}
+            />
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Difficulty</label>
+              <span style={{ fontFamily: 'Outfit', fontSize: '14px', fontWeight: 700, color: runDifficulty(difficulty).color }}>
+                {runDifficulty(difficulty).label} · {difficulty}/10
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={difficulty}
+              onChange={(e) => setDifficulty(Number(e.target.value))}
+              style={{ width: '100%', accentColor: runDifficulty(difficulty).color, cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Inter', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              <span>Easy</span>
+              <span>Medium</span>
+              <span>Hard</span>
+              <span>Extreme</span>
+            </div>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Ran With</label>
+            <PeoplePicker
+              options={dbPeople.map((p) => p.name)}
+              value={runPeople}
+              onChange={setRunPeople}
             />
           </div>
 

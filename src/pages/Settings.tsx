@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../components/common/Card';
 import { ExerciseManager } from '../components/settings/ExerciseManager';
 import { GymManager } from '../components/settings/GymManager';
-import { LocationTagger } from '../components/settings/LocationTagger';
+import { PeopleManager } from '../components/settings/PeopleManager';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -75,7 +75,7 @@ export const Settings: React.FC = () => {
       </Card>
 
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
-        <LocationTagger />
+        <PeopleManager />
       </Card>
 
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>

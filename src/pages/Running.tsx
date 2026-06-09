@@ -2,13 +2,13 @@ import React, { useMemo } from 'react';
 import { ref, remove } from 'firebase/database';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Footprints, Pencil, Trash2, MapPin, HeartPulse, Flame } from 'lucide-react';
+import { Footprints, Pencil, Trash2, MapPin, HeartPulse, Flame, Users } from 'lucide-react';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useRuns, type RunType } from '../hooks/useRuns';
 import { Card } from '../components/common/Card';
 import { labelStyle } from '../styles/formStyles';
-import { formatDuration } from '../utils/runFormat';
+import { formatDuration, runDifficulty } from '../utils/runFormat';
 
 const TYPE_COLORS: Record<RunType, string> = {
   Light: '#4ADE80',
@@ -136,12 +136,23 @@ export const Running: React.FC = () => {
                         <Flame size={13} style={{ color: '#F59E0B' }} /> {run.calories.toLocaleString()} kcal
                       </span>
                     )}
+                    {run.difficulty > 0 && (
+                      <span style={{ color: runDifficulty(run.difficulty).color, fontWeight: 600 }}>
+                        {runDifficulty(run.difficulty).label} {run.difficulty}/10
+                      </span>
+                    )}
                     <span style={{ color: 'var(--text-muted)' }}>{format(run.startTime, 'd MMM yyyy, HH:mm')}</span>
                   </div>
                   {run.location && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '13px' }}>
                       <MapPin size={13} />
                       <span>{run.location}</span>
+                    </div>
+                  )}
+                  {run.people.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '13px' }}>
+                      <Users size={13} style={{ color: '#60A5FA' }} />
+                      <span>{run.people.join(', ')}</span>
                     </div>
                   )}
                   {run.description && (

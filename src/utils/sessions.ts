@@ -8,6 +8,7 @@ export interface WorkoutSession {
   description: string;
   gym: string;
   avgHeartRate: number;
+  people: string[];
   volume: number;
   durSeconds: number;
   exercises: Map<string, TaggedWorkout[]>;
@@ -31,6 +32,7 @@ export const groupWorkoutSessions = (workouts: TaggedWorkout[]): WorkoutSession[
       description: w.description || '',
       gym: w.gym || '',
       avgHeartRate: w.avgHeartRate || 0,
+      people: w.people || [],
       volume: 0,
       durSeconds: 0,
       exercises: new Map<string, TaggedWorkout[]>(),

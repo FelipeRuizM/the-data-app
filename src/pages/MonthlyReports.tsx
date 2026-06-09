@@ -206,7 +206,9 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
   const [month, setMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const [unlocked, setUnlocked] = useState(false);
   const isCurrentMonth = isSameMonth(month, new Date());
+  const locked = isCurrentMonth && !unlocked;
   const monthKey = format(month, 'yyyy-MM');
   const unlockDate = format(startOfMonth(addMonths(month, 1)), 'MMM d');
 
@@ -244,10 +246,15 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
             <ChevronRight size={18} />
           </button>
         </div>
+        {isCurrentMonth && unlocked && (
+          <button className="mr-lock-btn mr-lock-btn--small" onClick={() => setUnlocked(false)}>
+            <Lock size={13} /> Lock report
+          </button>
+        )}
       </div>
 
       <div className="mr-locked-region">
-      <div className={`mr-body${isCurrentMonth ? ' mr-body--locked' : ''}`}>
+      <div className={`mr-body${locked ? ' mr-body--locked' : ''}`}>
         <div className="mr-grid">
           <StatCard label="Activities" cur={cur.activityCount} prev={prev.activityCount} fmt={fmtInt} />
           <StatCard label="Duration" cur={cur.durationMin}   prev={prev.durationMin}   fmt={fmtDuration} />
@@ -284,13 +291,14 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
         )}
       </div>
 
-      {/* Current month stays locked until it ends */}
-      {isCurrentMonth && (
+      {/* Current month stays locked until it ends — unlock anyway if you want */}
+      {locked && (
         <div className="mr-lock-overlay">
           <div className="mr-lock-card">
             <Lock size={30} />
             <h3 className="mr-lock-title">This month is still in progress</h3>
             <p className="mr-lock-text">Your {format(month, 'MMMM')} report unlocks on {unlockDate}.</p>
+            <button className="mr-lock-btn" onClick={() => setUnlocked(true)}>Unlock anyway</button>
           </div>
         </div>
       )}

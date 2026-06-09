@@ -5,6 +5,7 @@ export interface WorkoutSet {
   description: string;
   gym: string;
   avgHeartRate: number;
+  people: string[];
   exerciseTitle: string;
   supersetId: string;
   exerciseNotes: string;

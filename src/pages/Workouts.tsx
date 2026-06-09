@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Pencil, Trophy, MapPin, HeartPulse } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Trophy, MapPin, HeartPulse, Users } from 'lucide-react';
 import { ref, update } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -222,6 +222,14 @@ const WorkoutCard: React.FC<{
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gym</span>
               <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <MapPin size={15} color="var(--text-muted)" /> {session.gym}
+              </div>
+            </div>
+          )}
+          {session.people.length > 0 && (
+            <div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>With</span>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Users size={15} color="#60A5FA" /> {session.people.join(', ')}
               </div>
             </div>
           )}

@@ -60,6 +60,7 @@ export const useWorkouts = () => {
               description: item.description || '',
               gym: item.gym || '',
               avgHeartRate: Number(item.avg_heart_rate) || 0,
+              people: Array.isArray(item.people) ? item.people : [],
               exerciseTitle: rootTitle,
               supersetId: '',
               exerciseNotes: ex.exercise_notes || '',

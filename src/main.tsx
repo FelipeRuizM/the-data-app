@@ -5,6 +5,7 @@ import { SettingsProvider } from './context/SettingsContext';
 import { AuthProvider } from './context/AuthContext';
 import { ExercisesProvider } from './context/ExercisesContext';
 import { GymsProvider } from './context/GymsContext';
+import { PeopleProvider } from './context/PeopleContext';
 import App from './App.tsx';
 import './index.css';
 
@@ -14,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <ExercisesProvider>
           <GymsProvider>
-            <SettingsProvider>
-              <App />
-            </SettingsProvider>
+            <PeopleProvider>
+              <SettingsProvider>
+                <App />
+              </SettingsProvider>
+            </PeopleProvider>
           </GymsProvider>
         </ExercisesProvider>
       </AuthProvider>

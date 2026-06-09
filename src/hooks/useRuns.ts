@@ -23,6 +23,8 @@ export interface Run {
   location: string;
   avgHeartRate: number;
   calories: number;
+  people: string[];
+  difficulty: number;
 }
 
 const parseStartTime = (raw: unknown): Date => {
@@ -82,6 +84,8 @@ export const useRuns = () => {
             location: item.location || '',
             avgHeartRate: Number(item.avg_heart_rate) || 0,
             calories: Number(item.calories) || 0,
+            people: Array.isArray(item.people) ? item.people : [],
+            difficulty: Number(item.difficulty) || 0,
           }))
           .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 

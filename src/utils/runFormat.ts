@@ -10,6 +10,14 @@ export const parseTimeToSeconds = (str: string): number => {
   return 0;
 };
 
+/** Maps a 1–10 difficulty rating to a label + color bucket. */
+export const runDifficulty = (n: number): { label: string; color: string } => {
+  if (n <= 3) return { label: 'Easy', color: '#4ADE80' };
+  if (n <= 6) return { label: 'Medium', color: '#FACC15' };
+  if (n <= 8) return { label: 'Hard', color: '#FB7185' };
+  return { label: 'Extreme', color: '#A855F7' };
+};
+
 /** Formats seconds as "m:ss" or "h:mm:ss". */
 export const formatDuration = (seconds: number): string => {
   if (!seconds) return '0:00';

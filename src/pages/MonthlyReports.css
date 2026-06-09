@@ -62,6 +62,35 @@
   color: var(--text-secondary);
 }
 
+.mr-lock-btn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.mr-lock-btn:hover {
+  opacity: 0.9;
+}
+
+.mr-lock-btn--small {
+  margin-top: 0;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
 /* ── Header + month navigation ─────────────────────────────────── */
 
 .mr-header {
