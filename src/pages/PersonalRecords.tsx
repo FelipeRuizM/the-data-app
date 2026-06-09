@@ -131,7 +131,6 @@ export const PersonalRecords: React.FC<any> = ({ workouts }) => {
           }
         }}
       >
-        {isChampion && <div className="champion-glow" />}
         <LineChart size={isChampion ? 18 : 14} className="pr-card-link-icon" />
         <h3 style={{ fontSize: isChampion ? '24px' : '18px', margin: '0 0 16px 0', fontFamily: 'Outfit' }}>
           {pr.exerciseTitle}
