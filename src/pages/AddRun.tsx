@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useRuns, RUN_TYPES, type RunType } from '../hooks/useRuns';
+import { useGyms } from '../context/GymsContext';
 import { Card } from '../components/common/Card';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
 import { parseTimeToSeconds, formatDuration } from '../utils/runFormat';
@@ -21,11 +22,15 @@ const emptyForm = () => ({
   steps: '',
   dateTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   description: '',
+  location: '',
+  heartRate: '',
+  calories: '',
 });
 
 export const AddRun: React.FC = () => {
   const { canWrite, dataUid } = useAuth();
   const { runs } = useRuns();
+  const { gyms } = useGyms();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editParam = searchParams.get('edit');
@@ -51,6 +56,9 @@ export const AddRun: React.FC = () => {
       steps: run.steps ? String(run.steps) : '',
       dateTime: format(run.startTime, "yyyy-MM-dd'T'HH:mm"),
       description: run.description,
+      location: run.location,
+      heartRate: run.avgHeartRate ? String(run.avgHeartRate) : '',
+      calories: run.calories ? String(run.calories) : '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam, runs.length]);
@@ -74,6 +82,9 @@ export const AddRun: React.FC = () => {
       max_elevation_m: Number(form.maxElevation) || 0,
       steps: Number(form.steps) || 0,
       description: form.description.trim(),
+      location: form.location,
+      avg_heart_rate: Number(form.heartRate) || 0,
+      calories: Number(form.calories) || 0,
     };
 
     setIsSaving(true);
@@ -242,6 +253,42 @@ export const AddRun: React.FC = () => {
           </div>
 
           <div>
+            <label style={labelStyle}>Avg Heart Rate (bpm)</label>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={form.heartRate}
+              onChange={(e) => setField('heartRate', e.target.value)}
+              placeholder="optional"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Calories</label>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={form.calories}
+              onChange={(e) => setField('calories', e.target.value)}
+              placeholder="optional"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Location</label>
+            <select value={form.location} onChange={(e) => setField('location', e.target.value)} style={selectStyle}>
+              <option value="" style={{ background: 'var(--bg-dark)' }}>No location</option>
+              {gyms.map((g) => (
+                <option key={g.id} value={g.name} style={{ background: 'var(--bg-dark)' }}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label style={labelStyle}>Date &amp; Time</label>
             <input
               type="datetime-local"
@@ -256,7 +303,7 @@ export const AddRun: React.FC = () => {
             <textarea
               value={form.description}
               onChange={(e) => setField('description', e.target.value)}
-              placeholder="Where did you run today?"
+              placeholder="How did the run feel?"
               rows={2}
               style={{ ...inputStyle, resize: 'vertical', fontFamily: 'Inter' }}
             />

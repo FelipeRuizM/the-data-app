@@ -58,6 +58,8 @@ export const useWorkouts = () => {
               startTime,
               endTime: item.end_time ? new Date(item.end_time) : undefined,
               description: item.description || '',
+              gym: item.gym || '',
+              avgHeartRate: Number(item.avg_heart_rate) || 0,
               exerciseTitle: rootTitle,
               supersetId: '',
               exerciseNotes: ex.exercise_notes || '',

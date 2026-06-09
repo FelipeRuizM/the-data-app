@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ref, remove } from 'firebase/database';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Footprints, Pencil, Trash2, MapPin } from 'lucide-react';
+import { Footprints, Pencil, Trash2, MapPin, HeartPulse, Flame } from 'lucide-react';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useRuns, type RunType } from '../hooks/useRuns';
@@ -126,12 +126,27 @@ export const Running: React.FC = () => {
                     {run.elevationGainM > 0 && <span>↑ {run.elevationGainM} m</span>}
                     {run.maxElevationM > 0 && <span>⛰ {run.maxElevationM} m</span>}
                     {run.steps > 0 && <span>{run.steps.toLocaleString()} steps</span>}
+                    {run.avgHeartRate > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <HeartPulse size={13} style={{ color: '#FB7185' }} /> {run.avgHeartRate} bpm
+                      </span>
+                    )}
+                    {run.calories > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Flame size={13} style={{ color: '#F59E0B' }} /> {run.calories.toLocaleString()} kcal
+                      </span>
+                    )}
                     <span style={{ color: 'var(--text-muted)' }}>{format(run.startTime, 'd MMM yyyy, HH:mm')}</span>
                   </div>
-                  {run.description && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-muted)', fontFamily: 'Inter', fontSize: '13px' }}>
+                  {run.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '13px' }}>
                       <MapPin size={13} />
-                      <span>{run.description}</span>
+                      <span>{run.location}</span>
+                    </div>
+                  )}
+                  {run.description && (
+                    <div style={{ marginTop: '6px', color: 'var(--text-muted)', fontFamily: 'Inter', fontSize: '13px', fontStyle: 'italic' }}>
+                      "{run.description}"
                     </div>
                   )}
                 </div>

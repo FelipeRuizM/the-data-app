@@ -27,7 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, isOpen 
         <div className="sidebar-logo">
           {isCollapsed
             ? <span className="sidebar-logo-icon"><Dumbbell size={22} /></span>
-            : <h2>Workouts Data</h2>
+            : <h2>The Data App</h2>
           }
         </div>
 

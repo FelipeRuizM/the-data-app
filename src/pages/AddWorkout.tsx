@@ -8,10 +8,13 @@ import { ref, update, push } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useExercises } from '../context/ExercisesContext';
-import { MUSCLE_GROUPS } from '../utils/workoutUtils';
+import { useGyms } from '../context/GymsContext';
+import { MUSCLE_GROUPS, getLastExerciseSession } from '../utils/workoutUtils';
 import { groupWorkoutSessions } from '../utils/sessions';
 import { SET_TYPES, getSetLabel, getSetColor, type SetType } from '../utils/workoutDisplay';
+import { Card } from '../components/common/Card';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
+import type { TaggedWorkout } from '../hooks/useWorkouts';
 
 // ── Logger types ──────────────────────────────────────────────
 interface LogSet {
@@ -21,6 +24,7 @@ interface LogSet {
 }
 interface LogExercise {
   exerciseTitle: string;
+  notes: string;
   sets: LogSet[];
 }
 
@@ -39,11 +43,12 @@ const BODYWEIGHT_EXERCISES = ['Pull Up', 'Chin Up', 'Dip', 'Push Up', 'Muscle Up
 const getBodyweightAddition = (startTime: Date) =>
   startTime >= new Date('2026-02-01') ? 80 : 73;
 
-export const AddWorkout: React.FC<any> = ({ workouts }) => {
+export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) => {
   const { unit } = useSettings();
   const { user, canWrite } = useAuth();
   const uid = user?.uid;
   const { exercises: dbExercises, createExercise } = useExercises();
+  const { gyms } = useGyms();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editParam = searchParams.get('edit');
@@ -57,6 +62,9 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
   const [logDateTime, setLogDateTime] = useState(freshDateTime);
   const [logDuration, setLogDuration] = useState(60);
   const [logCategory, setLogCategory] = useState('Mixed');
+  const [logGym, setLogGym]           = useState('');
+  const [logHeartRate, setLogHeartRate] = useState('');
+  const [logDescription, setLogDescription] = useState('');
   const [logExercises, setLogExercises] = useState<LogExercise[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [showDropdown, setShowDropdown]     = useState(false);
@@ -100,6 +108,7 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
     const exercises: LogExercise[] = Array.from(session.exercises.entries())
       .map(([exTitle, sets]) => ({
         exerciseTitle: exTitle,
+        notes: sets[0]?.exerciseNotes || '',
         sets: sets
           .slice()
           .sort((a, b) => (a.setIndex ?? 0) - (b.setIndex ?? 0))
@@ -119,6 +128,9 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
     setLogDateTime(format(session.startTime, "yyyy-MM-dd'T'HH:mm"));
     setLogDuration(Math.max(1, Math.round((session.durSeconds || 60 * 60) / 60)));
     setLogCategory(session.category || 'Mixed');
+    setLogGym(session.gym || '');
+    setLogHeartRate(session.avgHeartRate ? String(session.avgHeartRate) : '');
+    setLogDescription(session.description || '');
     setLogExercises(exercises);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam, sessions.length]);
@@ -155,13 +167,50 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
     return list.filter(e => e === current || !used.has(e));
   }, [editingExIdx, editExSearch, uniqueExercises, logExercises]);
 
+  // ── "Last time" reference for each logged exercise (most recent prior
+  //    session containing it), formatted in the display unit. ──
+  const dispMul = unit === 'lbs' ? 2.20462 : 1;
+  const lastByExercise = useMemo(() => {
+    const before = new Date(logDateTime);
+    const map = new Map<string, { date: Date; label: string }>();
+    logExercises.forEach(ex => {
+      if (map.has(ex.exerciseTitle)) return;
+      const last = getLastExerciseSession(workouts, ex.exerciseTitle, before);
+      if (!last) return;
+      const isBw = BODYWEIGHT_EXERCISES.includes(ex.exerciseTitle);
+      const bwAdd = getBodyweightAddition(last.date);
+      const label = last.sets
+        .map(s => {
+          const raw = isBw ? Math.max(0, s.weightKg - bwAdd) : s.weightKg;
+          return `${Math.round(raw * dispMul * 100) / 100}${unit} × ${s.reps}`;
+        })
+        .join(', ');
+      map.set(ex.exerciseTitle, { date: last.date, label });
+    });
+    return map;
+  }, [logExercises, workouts, logDateTime, unit, dispMul]);
+
   // ── Logger handlers ──
   const addExercise = (title: string) => {
     if (!title) return;
-    setLogExercises(prev => [...prev, { exerciseTitle: title, sets: [{ setType: 'normal', weight: 0, reps: 0 }] }]);
+    // Prefill sets from the last time this exercise was logged (overwritable).
+    const last = getLastExerciseSession(workouts, title, new Date(logDateTime));
+    let sets: LogSet[] = [{ setType: 'normal', weight: 0, reps: 0 }];
+    if (last && last.sets.length > 0) {
+      const isBw = BODYWEIGHT_EXERCISES.includes(title);
+      const bwAdd = getBodyweightAddition(last.date);
+      sets = last.sets.map(s => {
+        const raw = isBw ? Math.max(0, s.weightKg - bwAdd) : s.weightKg;
+        return { setType: s.setType as SetType, weight: Math.round(raw * dispMul * 100) / 100, reps: s.reps };
+      });
+    }
+    setLogExercises(prev => [...prev, { exerciseTitle: title, notes: '', sets }]);
     setExerciseSearch('');
     setShowDropdown(false);
   };
+
+  const updateExerciseNotes = (exIdx: number, notes: string) =>
+    setLogExercises(prev => prev.map((ex, ei) => (ei === exIdx ? { ...ex, notes } : ex)));
 
   const removeExercise = (i: number) =>
     setLogExercises(prev => prev.filter((_, idx) => idx !== i));
@@ -236,10 +285,12 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
       start_time: format(startTime, 'd MMM yyyy, HH:mm'),
       end_time:   format(endTime,   'd MMM yyyy, HH:mm'),
       category: logCategory,
-      description: '',
+      description: logDescription.trim(),
+      gym: logGym,
+      avg_heart_rate: Number(logHeartRate) || 0,
       exercises: logExercises.map(ex => ({
         exercise_title: ex.exerciseTitle,
-        exercise_notes: '',
+        exercise_notes: ex.notes.trim(),
         sets: ex.sets.map((s, i) => ({
           set_index: i + 1,
           set_type: s.setType,
@@ -298,29 +349,64 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-        {/* Metadata grid */}
-        <div className="log-metadata-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Title</label>
-            <input value={logTitle} onChange={e => setLogTitle(e.target.value)} style={inputStyle} />
+        {/* Details card */}
+        <Card>
+          <h3 style={{ fontFamily: 'Outfit', fontSize: '15px', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ width: '4px', height: '16px', background: 'var(--accent-gradient)', borderRadius: '4px' }} />
+            Details
+          </h3>
+          <div className="log-metadata-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Title</label>
+              <input value={logTitle} onChange={e => setLogTitle(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Category</label>
+              <select value={logCategory} onChange={e => setLogCategory(e.target.value)} style={selectStyle}>
+                {['Push', 'Pull', 'Legs', 'Mixed'].map(c => (
+                  <option key={c} value={c} style={{ background: 'var(--bg-dark)' }}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Date &amp; Time</label>
+              <input type="datetime-local" value={logDateTime} onChange={e => setLogDateTime(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Duration (min)</label>
+              <input type="number" min={1} value={logDuration} onChange={e => setLogDuration(Math.max(1, Number(e.target.value)))} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Gym</label>
+              <select value={logGym} onChange={e => setLogGym(e.target.value)} style={selectStyle}>
+                <option value="" style={{ background: 'var(--bg-dark)' }}>No gym</option>
+                {gyms.map(g => (
+                  <option key={g.id} value={g.name} style={{ background: 'var(--bg-dark)' }}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Avg Heart Rate (bpm)</label>
+              <input
+                type="number" min={0} step={1}
+                value={logHeartRate}
+                onChange={e => setLogHeartRate(e.target.value)}
+                placeholder="optional"
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Description</label>
+              <textarea
+                value={logDescription}
+                onChange={e => setLogDescription(e.target.value)}
+                placeholder="How did the session go?"
+                rows={2}
+                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'Inter' }}
+              />
+            </div>
           </div>
-          <div>
-            <label style={labelStyle}>Category</label>
-            <select value={logCategory} onChange={e => setLogCategory(e.target.value)} style={selectStyle}>
-              {['Push', 'Pull', 'Legs', 'Mixed'].map(c => (
-                <option key={c} value={c} style={{ background: 'var(--bg-dark)' }}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Date &amp; Time</label>
-            <input type="datetime-local" value={logDateTime} onChange={e => setLogDateTime(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Duration (min)</label>
-            <input type="number" min={1} value={logDuration} onChange={e => setLogDuration(Math.max(1, Number(e.target.value)))} style={inputStyle} />
-          </div>
-        </div>
+        </Card>
 
         {/* Exercise search */}
         <div style={{ position: 'relative' }}>
@@ -482,6 +568,24 @@ export const AddWorkout: React.FC<any> = ({ workouts }) => {
                 <X size={14} color="#EF4444" />
               </button>
             </div>
+
+            {/* Last-time reference */}
+            {lastByExercise.has(ex.exerciseTitle) && (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap', marginBottom: '12px', fontFamily: 'Inter', fontSize: '12px', color: 'var(--text-muted)' }}>
+                <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent-pink-main)', fontWeight: 600 }}>
+                  Last time · {format(lastByExercise.get(ex.exerciseTitle)!.date, 'd MMM')}
+                </span>
+                <span>{lastByExercise.get(ex.exerciseTitle)!.label}</span>
+              </div>
+            )}
+
+            {/* Exercise notes */}
+            <input
+              value={ex.notes}
+              onChange={e => updateExerciseNotes(exIdx, e.target.value)}
+              placeholder="Add a note for this exercise…"
+              style={{ ...inputStyle, padding: '8px 12px', fontSize: '13px', marginBottom: '16px' }}
+            />
 
             {/* Sets table */}
             <div className="sets-scroll-wrapper">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '../components/common/Card';
 import { ExerciseManager } from '../components/settings/ExerciseManager';
+import { GymManager } from '../components/settings/GymManager';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -66,6 +67,10 @@ export const Settings: React.FC = () => {
 
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
         <ExerciseManager />
+      </Card>
+
+      <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
+        <GymManager />
       </Card>
 
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>

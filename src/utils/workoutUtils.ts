@@ -3,7 +3,17 @@ import type { WorkoutSet } from './csvParser';
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
 
-export type MetricType = 'volume' | 'reps' | 'sets' | 'duration';
+export type MetricType = 'volume' | 'reps' | 'sets' | 'duration' | 'distance';
+
+/**
+ * Minimal structural shape of a run needed by the analytics aggregators. Keeps
+ * this module decoupled from the full `Run` type / its hook.
+ */
+export interface ActivityRun {
+  startTime: Date;
+  durationSeconds: number;
+  distanceKm: number;
+}
 
 export interface ChartFilters {
   categories: string[];    // e.g. ['Push','Pull'] — empty = all
@@ -120,6 +130,30 @@ export function getWeeklyFrequency(workouts: (WorkoutSet & { id: string })[]): W
 
   return Array.from(weekMap.entries())
     .map(([weekKey, { label, ids }]) => ({ weekKey, label, workoutCount: ids.size }))
+    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
+}
+
+/**
+ * Counts activities per week: unique workout sessions (by `id`) plus each run.
+ * `workoutCount` carries the combined total so existing chart code is reused.
+ */
+export function getWeeklyActivityFrequency(
+  workouts: (WorkoutSet & { id: string })[],
+  runs: { startTime: Date }[] = [],
+): WeeklyFrequencyPoint[] {
+  const weekMap = new Map<string, { label: string; ids: Set<string>; runs: number }>();
+
+  const bucket = (date: Date) => {
+    const key = getWeekKey(date);
+    if (!weekMap.has(key)) weekMap.set(key, { label: getWeekLabel(date), ids: new Set(), runs: 0 });
+    return weekMap.get(key)!;
+  };
+
+  workouts.forEach(w => bucket(w.startTime).ids.add(w.id));
+  runs.forEach(r => { bucket(r.startTime).runs += 1; });
+
+  return Array.from(weekMap.entries())
+    .map(([weekKey, { label, ids, runs: runCount }]) => ({ weekKey, label, workoutCount: ids.size + runCount }))
     .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
 }
 
@@ -269,22 +303,72 @@ export function getExerciseSetPoints(
     }));
 }
 
+// ─── Last logged session for an exercise ─────────────────────────────────────
+
+export interface LastExerciseSet {
+  weightKg: number;   // kg, as stored (callers strip bodyweight / convert units)
+  reps: number;
+  setType: string;
+  setIndex: number;
+}
+
+export interface LastExerciseSession {
+  date: Date;
+  sets: LastExerciseSet[];
+}
+
+/**
+ * Finds the most recent prior session that logged `exerciseTitle`, strictly
+ * before `before` (defaults to now). Returns its sets ordered by set index,
+ * or null when the exercise has no earlier history. Used by the logger to show
+ * a "Last time" reference.
+ */
+export function getLastExerciseSession(
+  workouts: (WorkoutSet & { id: string })[],
+  exerciseTitle: string,
+  before?: Date,
+): LastExerciseSession | null {
+  const cutoff = before ? before.getTime() : Date.now();
+  const sessions = new Map<string, LastExerciseSession>();
+
+  workouts.forEach(w => {
+    if (w.exerciseTitle !== exerciseTitle) return;
+    if (w.startTime.getTime() >= cutoff) return;
+    const s = sessions.get(w.id) ?? { date: w.startTime, sets: [] };
+    s.sets.push({ weightKg: w.weightKg, reps: w.reps, setType: w.setType, setIndex: w.setIndex });
+    sessions.set(w.id, s);
+  });
+
+  let latest: LastExerciseSession | null = null;
+  sessions.forEach(s => {
+    if (!latest || s.date.getTime() > latest.date.getTime()) latest = s;
+  });
+
+  if (latest) (latest as LastExerciseSession).sets.sort((a, b) => (a.setIndex ?? 0) - (b.setIndex ?? 0));
+  return latest;
+}
+
 // ─── Monthly Summary ──────────────────────────────────────────────────────────
 
 export interface MonthlySummary {
-  workoutCount: number;  // distinct workout sessions in the month
-  durationMin: number;   // summed session durations, in minutes
-  volumeKg: number;      // Σ weight×reps across every set
-  setCount: number;      // total sets logged
+  workoutCount: number;   // distinct workout sessions in the month
+  runCount: number;       // runs in the month
+  activityCount: number;  // workoutCount + runCount
+  durationMin: number;    // summed session + run durations, in minutes
+  volumeKg: number;       // Σ weight×reps across every set
+  setCount: number;       // total sets logged
+  runDistanceKm: number;  // Σ run distance
 }
 
 /**
  * Totals for the calendar month containing `monthAnchor` (1st → last day).
- * Duration sums each session once (sets share a session's start/end times).
+ * Duration sums each session once (sets share a session's start/end times),
+ * plus run durations. Runs also contribute to the activity count and distance.
  */
 export function getMonthlySummary(
   workouts: (WorkoutSet & { id: string })[],
   monthAnchor: Date,
+  runs: ActivityRun[] = [],
 ): MonthlySummary {
   const start = startOfMonth(monthAnchor);
   const end   = endOfMonth(monthAnchor);
@@ -308,11 +392,23 @@ export function getMonthlySummary(
   let durationSec = 0;
   sessionDurSec.forEach(s => { durationSec += s; });
 
+  let runCount = 0;
+  let runDistanceKm = 0;
+  runs.forEach(r => {
+    if (r.startTime < start || r.startTime > end) return;
+    runCount += 1;
+    runDistanceKm += r.distanceKm;
+    durationSec += r.durationSeconds;
+  });
+
   return {
     workoutCount: sessions.size,
+    runCount,
+    activityCount: sessions.size + runCount,
     durationMin: Math.round(durationSec / 60),
     volumeKg,
     setCount,
+    runDistanceKm: Math.round(runDistanceKm * 100) / 100,
   };
 }
 
@@ -327,6 +423,7 @@ export interface MonthlyPoint extends MonthlySummary {
  */
 export function getMonthlySeries(
   workouts: (WorkoutSet & { id: string })[],
+  runs: ActivityRun[] = [],
 ): MonthlyPoint[] {
   interface Acc {
     date: Date;
@@ -334,16 +431,24 @@ export function getMonthlySeries(
     durSec: Map<string, number>;
     volumeKg: number;
     setCount: number;
+    runCount: number;
+    runDistanceKm: number;
+    runDurSec: number;
   }
   const map = new Map<string, Acc>();
 
-  workouts.forEach(w => {
-    const key = format(w.startTime, 'yyyy-MM');
+  const ensure = (date: Date): Acc => {
+    const key = format(date, 'yyyy-MM');
     let e = map.get(key);
     if (!e) {
-      e = { date: startOfMonth(w.startTime), sessions: new Set(), durSec: new Map(), volumeKg: 0, setCount: 0 };
+      e = { date: startOfMonth(date), sessions: new Set(), durSec: new Map(), volumeKg: 0, setCount: 0, runCount: 0, runDistanceKm: 0, runDurSec: 0 };
       map.set(key, e);
     }
+    return e;
+  };
+
+  workouts.forEach(w => {
+    const e = ensure(w.startTime);
     e.sessions.add(w.id);
     e.volumeKg += w.weightKg * w.reps;
     e.setCount += 1;
@@ -353,17 +458,27 @@ export function getMonthlySeries(
     }
   });
 
+  runs.forEach(r => {
+    const e = ensure(r.startTime);
+    e.runCount += 1;
+    e.runDistanceKm += r.distanceKm;
+    e.runDurSec += r.durationSeconds;
+  });
+
   return Array.from(map.entries())
     .map(([monthKey, e]) => {
-      let durationSec = 0;
+      let durationSec = e.runDurSec;
       e.durSec.forEach(s => { durationSec += s; });
       return {
         monthKey,
         label: format(e.date, 'MMM yy'),
         workoutCount: e.sessions.size,
+        runCount: e.runCount,
+        activityCount: e.sessions.size + e.runCount,
         durationMin: Math.round(durationSec / 60),
         volumeKg: e.volumeKg,
         setCount: e.setCount,
+        runDistanceKm: Math.round(e.runDistanceKm * 100) / 100,
       };
     })
     .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
@@ -385,18 +500,22 @@ export interface WeeklyMetricPoint {
 export function getWeeklyMetric(
   workouts: (WorkoutSet & { id: string })[],
   metric: MetricType,
+  runs: ActivityRun[] = [],
 ): WeeklyMetricPoint[] {
   // For 'sets' we need to count per-session unique sets, not raw rows (each row IS one set).
-  // For 'duration' we want total minutes of unique sessions (not per-set duplication).
-  // We track sessions separately to avoid double-counting session duration.
+  // For 'duration' we want total minutes of unique sessions (not per-set duplication),
+  // plus run durations. 'distance' comes entirely from runs.
   const map     = new Map<string, WeeklyMetricPoint>();
   const sessDur = new Map<string, { weekKey: string; durationSec: number }>();
 
-  workouts.forEach(w => {
-    const wk  = getWeekKey(w.startTime);
-    const lbl = getWeekLabel(w.startTime);
+  const ensure = (date: Date): string => {
+    const wk = getWeekKey(date);
+    if (!map.has(wk)) map.set(wk, { weekKey: wk, label: getWeekLabel(date), value: 0 });
+    return wk;
+  };
 
-    if (!map.has(wk)) map.set(wk, { weekKey: wk, label: lbl, value: 0 });
+  workouts.forEach(w => {
+    const wk = ensure(w.startTime);
     const pt = map.get(wk)!;
 
     if (metric === 'volume') {
@@ -416,14 +535,13 @@ export function getWeeklyMetric(
     }
   });
 
-  // Merge session durations into weekly buckets
   if (metric === 'duration') {
-    sessDur.forEach(({ weekKey, durationSec }) => {
-      if (!map.has(weekKey)) return;
-      map.get(weekKey)!.value += durationSec;
-    });
-    // Convert seconds → minutes
-    map.forEach(pt => { pt.value = Math.round(pt.value / 60); });
+    sessDur.forEach(({ weekKey, durationSec }) => { map.get(weekKey)!.value += durationSec; });
+    runs.forEach(r => { map.get(ensure(r.startTime))!.value += r.durationSeconds; });
+    map.forEach(pt => { pt.value = Math.round(pt.value / 60); }); // seconds → minutes
+  } else if (metric === 'distance') {
+    runs.forEach(r => { map.get(ensure(r.startTime))!.value += r.distanceKm; });
+    map.forEach(pt => { pt.value = Math.round(pt.value * 100) / 100; });
   } else if (metric === 'volume') {
     // Leave as-is; caller converts kg→lbs if needed
   } else {

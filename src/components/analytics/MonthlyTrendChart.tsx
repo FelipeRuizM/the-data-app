@@ -12,13 +12,14 @@ interface Props {
   selectedMonthKey: string;
 }
 
-type MetricKey = 'workouts' | 'duration' | 'volume' | 'sets';
+type MetricKey = 'activities' | 'duration' | 'volume' | 'sets' | 'distance';
 
 const METRICS: { key: MetricKey; label: string; color: string }[] = [
-  { key: 'workouts', label: 'Workouts', color: '#FF2E93' },
-  { key: 'duration', label: 'Duration', color: '#FF85B3' },
-  { key: 'volume',   label: 'Volume',   color: '#9D00FF' },
-  { key: 'sets',     label: 'Sets',     color: '#00F0FF' },
+  { key: 'activities', label: 'Activities', color: '#FF2E93' },
+  { key: 'duration',   label: 'Duration',   color: '#FF85B3' },
+  { key: 'volume',     label: 'Volume',     color: '#9D00FF' },
+  { key: 'sets',       label: 'Sets',       color: '#00F0FF' },
+  { key: 'distance',   label: 'Distance',   color: '#4ADE80' },
 ];
 
 const abbrev = (v: number) =>
@@ -42,27 +43,30 @@ export const MonthlyTrendChart: React.FC<Props> = ({ series, selectedMonthKey })
   const data = useMemo(() => series.map(m => ({
     monthKey: m.monthKey,
     label: m.label,
-    value: metric === 'workouts' ? m.workoutCount
-         : metric === 'duration' ? m.durationMin
-         : metric === 'volume'   ? Math.round(m.volumeKg * multiplier)
+    value: metric === 'activities' ? m.activityCount
+         : metric === 'duration'   ? m.durationMin
+         : metric === 'volume'     ? Math.round(m.volumeKg * multiplier)
+         : metric === 'distance'   ? m.runDistanceKm
          : m.setCount,
   })), [series, metric, multiplier]);
 
   const yTick = (v: number) =>
     metric === 'duration' ? (v >= 60 ? `${Math.round(v / 60)}h` : `${v}m`)
+    : metric === 'distance' ? `${v}km`
     : abbrev(v);
 
   const tip = (v: number) =>
     metric === 'duration' ? fmtDur(v)
     : metric === 'volume'  ? `${v.toLocaleString()} ${unit}`
-    : metric === 'workouts' ? `${v} workout${v === 1 ? '' : 's'}`
+    : metric === 'distance' ? `${v.toLocaleString()} km`
+    : metric === 'activities' ? `${v} activit${v === 1 ? 'y' : 'ies'}`
     : `${v} set${v === 1 ? '' : 's'}`;
 
   return (
     <Card style={{ height: '340px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
         <h3 style={{ fontFamily: 'Outfit', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-          Monthly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : ''}
+          Monthly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : metric === 'distance' ? ' (km)' : ''}
         </h3>
         <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '3px' }}>
           {METRICS.map(m => {

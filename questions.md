@@ -49,6 +49,6 @@ Based on your past work with the Hevy app and Firebase migration, here is what I
    - **Video Format**: Standard horizontal layout works best to showcase the wide desktop dashboard and charts.
 
 5. **Outro**
-   - **GitHub Link**: https://github.com/FelipeRuizM/hevy-visualizer
-   - **Live Demo**: https://FelipeRuizM.github.io/hevy-visualizer
+   - **GitHub Link**: https://github.com/FelipeRuizM/the-data-app
+   - **Live Demo**: https://FelipeRuizM.github.io/the-data-app
    - (Note: Assuming standard username/repo format from the `package.json` homepage URL).

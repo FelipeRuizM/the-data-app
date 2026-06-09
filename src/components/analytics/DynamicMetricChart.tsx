@@ -10,6 +10,7 @@ import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
   workouts: TaggedWorkout[];
+  runs?: { startTime: Date; durationSeconds: number; distanceKm: number }[];
   fillGaps?: boolean;
   rangeStart?: Date | null;
   rangeEnd?: Date | null;
@@ -31,6 +32,7 @@ const METRICS: MetricConfig[] = [
   { key: 'reps',     label: 'Reps',     color: '#00F0FF', gradId: 'dmcReps', gradTop: '#00F0FF', gradBot: '#00A8B3' },
   { key: 'sets',     label: 'Sets',     color: '#9D00FF', gradId: 'dmcSets', gradTop: '#9D00FF', gradBot: '#6600CC' },
   { key: 'duration', label: 'Duration', color: '#FF85B3', gradId: 'dmcDur',  gradTop: '#FF85B3', gradBot: '#E05080' },
+  { key: 'distance', label: 'Distance', color: '#4ADE80', gradId: 'dmcDist', gradTop: '#4ADE80', gradBot: '#22A35A' },
 ];
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
@@ -41,6 +43,7 @@ function yTickFormatter(v: number, metric: MetricType, _unit: string): string {
     return val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val);
   }
   if (metric === 'duration') return `${v}m`;
+  if (metric === 'distance') return `${v}km`;
   return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v);
 }
 
@@ -50,20 +53,21 @@ function tooltipFormatter(value: unknown, metric: MetricType, unit: string): [st
   if (metric === 'reps')     return [`${n.toLocaleString()} reps`, 'Reps'];
   if (metric === 'sets')     return [`${n.toLocaleString()} sets`, 'Sets'];
   if (metric === 'duration') return [`${n} min`, 'Duration'];
+  if (metric === 'distance') return [`${n.toLocaleString()} km`, 'Distance'];
   return [String(n), ''];
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false, rangeStart, rangeEnd }) => {
+export const DynamicMetricChart: React.FC<Props> = ({ workouts, runs = [], fillGaps = false, rangeStart, rangeEnd }) => {
   const { unit } = useSettings();
   const [metric, setMetric] = useState<MetricType>('duration');
 
   const cfg = METRICS.find(m => m.key === metric)!;
 
-  // Base weekly aggregation — recomputes only when workouts or metric changes
+  // Base weekly aggregation — recomputes only when workouts/runs or metric changes
   const weeklyBase = useMemo(() => {
-    const base = getWeeklyMetric(workouts, metric);
+    const base = getWeeklyMetric(workouts, metric, runs);
     if (!fillGaps) return base;
     return fillWeeklyGaps(
       base,
@@ -71,12 +75,12 @@ export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false
       rangeStart,
       rangeEnd,
     );
-  }, [workouts, metric, fillGaps, rangeStart, rangeEnd]);
+  }, [workouts, runs, metric, fillGaps, rangeStart, rangeEnd]);
 
   // Apply kg→lbs conversion for volume only
   const displayData = useMemo(() => {
     const multiplier = metric === 'volume' && unit === 'lbs' ? 2.20462 : 1;
-    return weeklyBase.map(d => ({ label: d.label, value: Math.round(d.value * multiplier) }));
+    return weeklyBase.map(d => ({ label: d.label, value: Math.round(d.value * multiplier * 100) / 100 }));
   }, [weeklyBase, metric, unit]);
 
   return (
@@ -84,7 +88,7 @@ export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false
 
       {/* ── Header row with metric pills ─────────────────────── */}
       <div className="dmc-header">
-        <h3 className="dmc-title">Weekly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : metric === 'duration' ? ' (min)' : ''}</h3>
+        <h3 className="dmc-title">Weekly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : metric === 'duration' ? ' (min)' : metric === 'distance' ? ' (km)' : ''}</h3>
         <div className="dmc-pills">
           {METRICS.map(m => (
             <button
@@ -100,7 +104,7 @@ export const DynamicMetricChart: React.FC<Props> = ({ workouts, fillGaps = false
       </div>
 
       {/* ── Chart ────────────────────────────────────────────── */}
-      {workouts.length === 0 ? (
+      {workouts.length === 0 && runs.length === 0 ? (
         <div className="dmc-empty">No data for this range</div>
       ) : (
         <div style={{ flex: 1, minHeight: 0 }}>

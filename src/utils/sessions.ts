@@ -5,6 +5,9 @@ export interface WorkoutSession {
   startTime: Date;
   title: string;
   category: string;
+  description: string;
+  gym: string;
+  avgHeartRate: number;
   volume: number;
   durSeconds: number;
   exercises: Map<string, TaggedWorkout[]>;
@@ -25,6 +28,9 @@ export const groupWorkoutSessions = (workouts: TaggedWorkout[]): WorkoutSession[
       startTime: w.startTime,
       title: w.title,
       category: w.category || 'Mixed',
+      description: w.description || '',
+      gym: w.gym || '',
+      avgHeartRate: w.avgHeartRate || 0,
       volume: 0,
       durSeconds: 0,
       exercises: new Map<string, TaggedWorkout[]>(),

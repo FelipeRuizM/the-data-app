@@ -4,11 +4,12 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Card } from '../common/Card';
-import { getWeeklyFrequency, fillWeeklyGaps } from '../../utils/workoutUtils';
+import { getWeeklyActivityFrequency, fillWeeklyGaps } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
   workouts: TaggedWorkout[];
+  runs?: { startTime: Date }[];
   fillGaps?: boolean;
   rangeStart?: Date | null;
   rangeEnd?: Date | null;
@@ -16,9 +17,9 @@ interface Props {
 
 const CYAN = '#00F0FF';
 
-export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, rangeStart, rangeEnd }) => {
+export const FrequencyChart: React.FC<Props> = ({ workouts, runs = [], fillGaps = false, rangeStart, rangeEnd }) => {
   const chartData = useMemo(() => {
-    const base = getWeeklyFrequency(workouts);
+    const base = getWeeklyActivityFrequency(workouts, runs);
     if (!fillGaps) return base;
     return fillWeeklyGaps(
       base,
@@ -26,7 +27,7 @@ export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, ra
       rangeStart,
       rangeEnd,
     );
-  }, [workouts, fillGaps, rangeStart, rangeEnd]);
+  }, [workouts, runs, fillGaps, rangeStart, rangeEnd]);
 
   const avgFrequency = useMemo(() => {
     if (chartData.length === 0) return 0;
@@ -34,7 +35,7 @@ export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, ra
     return Math.round((total / chartData.length) * 10) / 10;
   }, [chartData]);
 
-  if (workouts.length === 0) {
+  if (workouts.length === 0 && runs.length === 0) {
     return (
       <Card style={{ height: '360px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-muted)', fontFamily: 'Outfit' }}>No data for this range</p>
@@ -46,7 +47,7 @@ export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, ra
     <Card style={{ height: '360px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '20px' }}>
         <h3 style={{ fontFamily: 'Outfit', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-          Workout Frequency
+          Activity Frequency
         </h3>
         <span style={{ fontFamily: 'Outfit', fontSize: '12px', color: 'var(--text-muted)' }}>
           avg {avgFrequency}/wk
@@ -97,7 +98,7 @@ export const FrequencyChart: React.FC<Props> = ({ workouts, fillGaps = false, ra
               }}
               itemStyle={{ color: CYAN, fontWeight: 'bold' }}
               labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px' }}
-              formatter={(value: unknown) => [String(value), 'Workouts']}
+              formatter={(value: unknown) => [String(value), 'Activities']}
             />
             <Line
               type="monotone"

@@ -1,4 +1,4 @@
-# Hevy Workout Data Visualization - Master Plan
+# The Data App - Master Plan
 
 ## Goal Description
 The goal is to build a beautiful, rich, and dynamic data visualization dashboard web application to track and visualize workout data provided in `workout_data.csv`. The dashboard will wow the user with a premium aesthetic (modern typography, gradients, glassmorphism, smooth animations) and provide actionable insights into their fitness progression. 

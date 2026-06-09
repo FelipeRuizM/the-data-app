@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Pencil, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Trophy, MapPin, HeartPulse } from 'lucide-react';
 import { ref, update } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -209,7 +209,30 @@ const WorkoutCard: React.FC<{
               {Math.round(session.volume * multiplier).toLocaleString()} {unit}
             </div>
           </div>
+          {session.avgHeartRate > 0 && (
+            <div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg HR</span>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <HeartPulse size={15} color="#FB7185" /> {session.avgHeartRate} <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 400 }}>bpm</span>
+              </div>
+            </div>
+          )}
+          {session.gym && (
+            <div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gym</span>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={15} color="var(--text-muted)" /> {session.gym}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Workout description */}
+        {session.description && (
+          <div style={{ color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '14px', lineHeight: 1.5, fontStyle: 'italic' }}>
+            "{session.description}"
+          </div>
+        )}
 
         {/* Expanded exercise list */}
         {isOpen && (
@@ -219,12 +242,18 @@ const WorkoutCard: React.FC<{
           >
             {Array.from(session.exercises.entries()).map(([exTitle, rawSets]) => {
               const sets = rawSets.slice().sort((a, b) => (a.setIndex ?? 0) - (b.setIndex ?? 0));
+              const notes = rawSets[0]?.exerciseNotes;
               return (
                 <div key={exTitle}>
-                  <h4 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h4 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: notes ? '6px' : '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '4px', height: '14px', background: catColor, borderRadius: '4px' }} />
                     {exTitle}
                   </h4>
+                  {notes && (
+                    <p style={{ margin: '0 0 12px', paddingLeft: '12px', color: 'var(--text-muted)', fontFamily: 'Inter', fontSize: '13px', fontStyle: 'italic' }}>
+                      {notes}
+                    </p>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '12px' }}>
                     {sets.map((set, idx) => {
                       const pr = setPRs.get(setPRKey(set.id, exTitle, set.setIndex));

@@ -22,7 +22,7 @@ export const MainLayout: React.FC = () => {
           <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
             <Menu size={22} />
           </button>
-          <span className="mobile-logo">Hevy</span>
+          <span className="mobile-logo">The Data App</span>
         </header>
         <TopNavigation />
         <main className="dashboard-content">

@@ -3,6 +3,8 @@ export interface WorkoutSet {
   startTime: Date;
   endTime?: Date;
   description: string;
+  gym: string;
+  avgHeartRate: number;
   exerciseTitle: string;
   supersetId: string;
   exerciseNotes: string;

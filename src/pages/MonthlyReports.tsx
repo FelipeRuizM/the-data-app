@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trophy, Lock } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, format, isSameMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
+import { useRuns } from '../hooks/useRuns';
 import { getMonthlySummary, getMonthlySeries } from '../utils/workoutUtils';
 import { computePRAchievements, estimateOneRM, type PRAchievement, type PRType } from '../utils/prEngine';
 import { PR_TYPES } from '../utils/workoutDisplay';
@@ -30,6 +31,8 @@ const fmtDuration = (min: number) => {
 };
 
 const fmtInt = (n: number) => String(n);
+
+const fmtKm = (n: number) => `${(Math.round(n * 10) / 10).toLocaleString()}`;
 
 type Dir = 'up' | 'down' | 'flat';
 
@@ -199,15 +202,17 @@ const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ 
 
 export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const { unit } = useSettings();
+  const { runs } = useRuns();
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
   const [month, setMonth] = useState<Date>(() => startOfMonth(new Date()));
   const isCurrentMonth = isSameMonth(month, new Date());
   const monthKey = format(month, 'yyyy-MM');
+  const unlockDate = format(startOfMonth(addMonths(month, 1)), 'MMM d');
 
-  const cur    = useMemo(() => getMonthlySummary(workouts, month), [workouts, month]);
-  const prev   = useMemo(() => getMonthlySummary(workouts, subMonths(month, 1)), [workouts, month]);
-  const series = useMemo(() => getMonthlySeries(workouts), [workouts]);
+  const cur    = useMemo(() => getMonthlySummary(workouts, month, runs), [workouts, runs, month]);
+  const prev   = useMemo(() => getMonthlySummary(workouts, subMonths(month, 1), runs), [workouts, runs, month]);
+  const series = useMemo(() => getMonthlySeries(workouts, runs), [workouts, runs]);
   const monthWorkouts = useMemo(
     () => workouts.filter(w => isSameMonth(w.startTime, month)),
     [workouts, month],
@@ -218,8 +223,8 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
 
   const curAvgVol  = cur.workoutCount  ? Math.round(curVol / cur.workoutCount)   : 0;
   const prevAvgVol = prev.workoutCount ? Math.round(prevVol / prev.workoutCount) : 0;
-  const curAvgDur  = cur.workoutCount  ? Math.round(cur.durationMin / cur.workoutCount)   : 0;
-  const prevAvgDur = prev.workoutCount ? Math.round(prev.durationMin / prev.workoutCount) : 0;
+  const curAvgDur  = cur.activityCount  ? Math.round(cur.durationMin / cur.activityCount)   : 0;
+  const prevAvgDur = prev.activityCount ? Math.round(prev.durationMin / prev.activityCount) : 0;
 
   return (
     <div className="mr-page" style={{ animation: 'fadeIn 0.5s ease-out' }}>
@@ -241,39 +246,55 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
         </div>
       </div>
 
-      <div className="mr-grid">
-        <StatCard label="Workouts" cur={cur.workoutCount}  prev={prev.workoutCount}  fmt={fmtInt} />
-        <StatCard label="Duration" cur={cur.durationMin}   prev={prev.durationMin}   fmt={fmtDuration} />
-        <StatCard label="Volume"   cur={curVol}            prev={prevVol}            fmt={fmtVolume} unit={unit} />
-        <StatCard label="Sets"     cur={cur.setCount}      prev={prev.setCount}      fmt={fmtInt} />
-        <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
-        <StatCard label="Avg Session Time"     cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
+      <div className="mr-locked-region">
+      <div className={`mr-body${isCurrentMonth ? ' mr-body--locked' : ''}`}>
+        <div className="mr-grid">
+          <StatCard label="Activities" cur={cur.activityCount} prev={prev.activityCount} fmt={fmtInt} />
+          <StatCard label="Duration" cur={cur.durationMin}   prev={prev.durationMin}   fmt={fmtDuration} />
+          <StatCard label="Volume"   cur={curVol}            prev={prevVol}            fmt={fmtVolume} unit={unit} />
+          <StatCard label="Distance" cur={cur.runDistanceKm} prev={prev.runDistanceKm} fmt={fmtKm} unit="km" />
+          <StatCard label="Sets"     cur={cur.setCount}      prev={prev.setCount}      fmt={fmtInt} />
+          <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
+          <StatCard label="Avg Session Time"     cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
+        </div>
+
+        {/* Cross-month trend (toggle activities / duration / volume / sets / distance) */}
+        <div className="mr-section">
+          <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
+        </div>
+
+        {/* Records broken this month */}
+        <div className="mr-section">
+          <RecordsSection workouts={workouts} month={month} />
+        </div>
+
+        {cur.activityCount === 0 ? (
+          <div className="mr-empty">No activities logged in {format(month, 'MMMM yyyy')}.</div>
+        ) : (
+          <>
+            <div className="mr-row">
+              <WorkoutCalendar workouts={workouts} runs={runs} month={month} />
+              <MuscleRadarChart workouts={monthWorkouts} />
+            </div>
+            <div className="mr-row">
+              <MuscleSetCountChart workouts={monthWorkouts} />
+              <MainExercises workouts={monthWorkouts} />
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Cross-month trend (toggle workouts / duration / volume / sets) */}
-      <div className="mr-section">
-        <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
-      </div>
-
-      {/* Records broken this month */}
-      <div className="mr-section">
-        <RecordsSection workouts={workouts} month={month} />
-      </div>
-
-      {cur.workoutCount === 0 ? (
-        <div className="mr-empty">No workouts logged in {format(month, 'MMMM yyyy')}.</div>
-      ) : (
-        <>
-          <div className="mr-row">
-            <WorkoutCalendar workouts={workouts} month={month} />
-            <MuscleRadarChart workouts={monthWorkouts} />
+      {/* Current month stays locked until it ends */}
+      {isCurrentMonth && (
+        <div className="mr-lock-overlay">
+          <div className="mr-lock-card">
+            <Lock size={30} />
+            <h3 className="mr-lock-title">This month is still in progress</h3>
+            <p className="mr-lock-text">Your {format(month, 'MMMM')} report unlocks on {unlockDate}.</p>
           </div>
-          <div className="mr-row">
-            <MuscleSetCountChart workouts={monthWorkouts} />
-            <MainExercises workouts={monthWorkouts} />
-          </div>
-        </>
+        </div>
       )}
+      </div>
     </div>
   );
 };

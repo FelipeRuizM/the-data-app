@@ -20,6 +20,9 @@ export interface Run {
   maxElevationM: number;
   steps: number;
   description: string;
+  location: string;
+  avgHeartRate: number;
+  calories: number;
 }
 
 const parseStartTime = (raw: unknown): Date => {
@@ -76,6 +79,9 @@ export const useRuns = () => {
             maxElevationM: Number(item.max_elevation_m) || 0,
             steps: Number(item.steps) || 0,
             description: item.description || '',
+            location: item.location || '',
+            avgHeartRate: Number(item.avg_heart_rate) || 0,
+            calories: Number(item.calories) || 0,
           }))
           .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 

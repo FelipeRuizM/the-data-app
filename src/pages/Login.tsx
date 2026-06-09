@@ -90,7 +90,7 @@ export const Login: React.FC = () => {
             WebkitTextFillColor: 'transparent',
             fontWeight: 700,
           }}>
-            WORKOUTS DATA
+            THE DATA APP
           </div>
           <p style={{ marginTop: '6px', color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'Inter' }}>
             Sign in to continue

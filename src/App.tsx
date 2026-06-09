@@ -21,7 +21,7 @@ import './App.css';
 const LoadingScreen = ({ label }: { label: string }) => (
   <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
     <div style={{ fontFamily: 'Outfit', fontSize: '24px', letterSpacing: '2px', background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'pulse 1.5s infinite', opacity: 0.8 }}>
-      WORKOUTS DATA
+      THE DATA APP
     </div>
     <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>{label}</p>
   </div>

@@ -187,19 +187,23 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     [dateFiltered, filters, getMuscleGroup],
   );
 
-  // ── Combined overview totals (lifts + runs), honoring the active filters.
-  //    Lifts respect the full filter set; runs respect the time range only
-  //    (they have no category/muscle/exercise to filter on). ──────────────────
+  // ── Runs sliced to the active time range (runs have no category/muscle/
+  //    exercise to filter on, so they respect the time range only). ──────────
+  const rangeRuns = useMemo(
+    () => (rangeStart ? runs.filter(r => r.startTime >= rangeStart) : runs),
+    [runs, rangeStart],
+  );
+
+  // ── Combined overview totals (lifts + runs), honoring the active filters. ──
   const overall = useMemo(() => {
     const sessions = groupWorkoutSessions(filteredWorkouts);
     const liftSeconds = sessions.reduce((s, x) => s + x.durSeconds, 0);
-    const rangeRuns = rangeStart ? runs.filter(r => r.startTime >= rangeStart) : runs;
     const runSeconds = rangeRuns.reduce((s, r) => s + r.durationSeconds, 0);
     return {
       count: sessions.length + rangeRuns.length,
       minutes: Math.round((liftSeconds + runSeconds) / 60),
     };
-  }, [filteredWorkouts, runs, rangeStart]);
+  }, [filteredWorkouts, rangeRuns]);
 
   // ── Key metrics ──────────────────────────────────────────────────────────
   const metrics = useMemo(() => {
@@ -349,7 +353,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       {/* ── Key Metrics ────────────────────────────────────────── */}
       <div className="analytics-metrics-row">
         <div className="analytics-metric-card glass-panel">
-          <span className="metric-label">Total Workouts</span>
+          <span className="metric-label">Total Activities</span>
           <span className="metric-value">{overall.count.toLocaleString()}</span>
         </div>
         <div className="analytics-metric-card glass-panel">
@@ -381,7 +385,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       {/* ── Calendar + Muscle Split (hidden when isolating a single exercise) ── */}
       {!filters.exercise && (
         <div className="analytics-calendar-row">
-          <WorkoutCalendar workouts={workouts} />
+          <WorkoutCalendar workouts={workouts} runs={runs} />
           <MuscleRadarChart workouts={filteredWorkouts} />
         </div>
       )}
@@ -390,12 +394,14 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
       <div className="analytics-charts-grid">
         <DynamicMetricChart
           workouts={filteredWorkouts}
+          runs={filters.exercise ? [] : rangeRuns}
           fillGaps
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
         <FrequencyChart
           workouts={filteredWorkouts}
+          runs={filters.exercise ? [] : rangeRuns}
           fillGaps
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}

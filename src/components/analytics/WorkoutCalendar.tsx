@@ -12,6 +12,11 @@ interface WorkoutInfo {
   category: string;
 }
 
+interface RunInfo {
+  title: string;
+  distanceKm: number;
+}
+
 interface PopoverState {
   top: number;
   left: number;
@@ -21,12 +26,17 @@ interface PopoverState {
 interface Props {
   // Receives the full unfiltered workout list so any month is navigable
   workouts: TaggedWorkout[];
+  // Runs to overlay as activities (distinct color). Structural so the calendar
+  // stays decoupled from the full Run type.
+  runs?: { startTime: Date; title: string; distanceKm: number }[];
   // When provided, the calendar locks to this month and hides its own nav —
   // the parent (e.g. Monthly Reports) controls the month instead.
   month?: Date;
 }
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+const RUN_COLOR = '#4ADE80';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Push:  '#FF2E93',
@@ -35,7 +45,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Mixed: '#FF85B3',
 };
 
-export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
+export const WorkoutCalendar: React.FC<Props> = ({ workouts, runs = [], month }) => {
   const controlled = month !== undefined;
   const [viewMonth, setViewMonth]     = useState(() => startOfMonth(month ?? new Date()));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -70,6 +80,20 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
     return map;
   }, [workouts]);
 
+  // ── Build date → runs map ──────────────────────────────────────
+  const runMap = useMemo(() => {
+    const map = new Map<string, RunInfo[]>();
+    runs.forEach(r => {
+      const key = format(r.startTime, 'yyyy-MM-dd');
+      const arr = map.get(key) ?? [];
+      arr.push({ title: r.title || 'Run', distanceKm: r.distanceKm });
+      map.set(key, arr);
+    });
+    return map;
+  }, [runs]);
+
+  const hasActivity = (key: string) => workoutMap.has(key) || runMap.has(key);
+
   // ── Grid cells: leading blanks + days of the month ─────────────
   const cells = useMemo<(Date | null)[]>(() => {
     const first  = startOfMonth(viewMonth);
@@ -95,7 +119,7 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
   const handleDayClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const key = format(day, 'yyyy-MM-dd');
 
-    if (!workoutMap.has(key)) {
+    if (!hasActivity(key)) {
       setSelectedKey(null);
       setPopover(null);
       return;
@@ -158,6 +182,7 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
 
           const key        = format(day, 'yyyy-MM-dd');
           const hasWorkout = workoutMap.has(key);
+          const hasRun     = runMap.has(key);
           const today      = isToday(day);
           const selected   = key === selectedKey;
 
@@ -166,29 +191,34 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
               key={key}
               className={[
                 'cal-day',
-                hasWorkout ? 'cal-day--workout' : '',
+                hasWorkout || hasRun ? 'cal-day--workout' : '',
                 today      ? 'cal-day--today'   : '',
                 selected   ? 'cal-day--selected' : '',
               ].filter(Boolean).join(' ')}
               onClick={e => handleDayClick(day, e)}
             >
               <span className="cal-day-num">{format(day, 'd')}</span>
-              {hasWorkout && <span className="cal-dot" />}
+              {(hasWorkout || hasRun) && (
+                <span style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                  {hasWorkout && <span className="cal-dot" />}
+                  {hasRun && <span className="cal-dot" style={{ background: RUN_COLOR }} />}
+                </span>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* ── Popover ──────────────────────────────────────────── */}
-      {selectedKey && popover && workoutMap.has(selectedKey) && (
+      {selectedKey && popover && hasActivity(selectedKey) && (
         <div
           className={`cal-popover cal-popover--${popover.above ? 'above' : 'below'}`}
           style={{ top: popover.top, left: popover.left }}
           onClick={e => e.stopPropagation()}
         >
-          {workoutMap.get(selectedKey)!.map((w, i) => (
+          {(workoutMap.get(selectedKey) ?? []).map((w, i) => (
             <div
-              key={i}
+              key={`w-${i}`}
               className={`cal-popover-item${i > 0 ? ' cal-popover-item--divider' : ''}`}
             >
               <span className="cal-popover-title">{w.title}</span>
@@ -197,6 +227,17 @@ export const WorkoutCalendar: React.FC<Props> = ({ workouts, month }) => {
                 style={{ color: CATEGORY_COLORS[w.category] ?? '#FF85B3' }}
               >
                 {w.category}
+              </span>
+            </div>
+          ))}
+          {(runMap.get(selectedKey) ?? []).map((r, i) => (
+            <div
+              key={`r-${i}`}
+              className={`cal-popover-item${(workoutMap.get(selectedKey)?.length ?? 0) + i > 0 ? ' cal-popover-item--divider' : ''}`}
+            >
+              <span className="cal-popover-title">{r.title}</span>
+              <span className="cal-popover-cat" style={{ color: RUN_COLOR }}>
+                {r.distanceKm > 0 ? `${r.distanceKm.toFixed(1)} km` : 'Run'}
               </span>
             </div>
           ))}
