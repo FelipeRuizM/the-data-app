@@ -1,4 +1,9 @@
-import { Dumbbell, Cable, Footprints, Activity, Trophy, TrendingUp, Gauge, type LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { Activity, Trophy, TrendingUp, Gauge, type LucideIcon } from 'lucide-react';
+import { PushIcon, PullIcon, LegsIcon, type CategoryIconProps } from '../components/icons/WorkoutCategoryIcons';
+
+// Either a Lucide icon or one of our custom split icons — both accept size/color.
+export type CategoryIcon = ComponentType<CategoryIconProps>;
 
 // ── Set types ─────────────────────────────────────────────────
 export type SetType = 'normal' | 'warmup' | 'dropset' | 'failure' | 'feeder' | 'working';
@@ -30,10 +35,10 @@ export const getSetColor = (type: SetType) =>
   SET_TYPES.find(t => t.key === type)?.color ?? 'var(--text-primary)';
 
 // ── Workout categories (split types) ──────────────────────────
-export const CATEGORY_STYLES: Record<string, { color: string; icon: LucideIcon }> = {
-  Push:  { color: '#60A5FA', icon: Dumbbell },
-  Pull:  { color: '#4ADE80', icon: Cable },
-  Legs:  { color: '#FB7185', icon: Footprints },
+export const CATEGORY_STYLES: Record<string, { color: string; icon: CategoryIcon }> = {
+  Push:  { color: '#60A5FA', icon: PushIcon },
+  Pull:  { color: '#4ADE80', icon: PullIcon },
+  Legs:  { color: '#FB7185', icon: LegsIcon },
   Mixed: { color: '#A78BFA', icon: Activity },
 };
 
