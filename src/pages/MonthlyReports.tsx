@@ -5,6 +5,7 @@ import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { useRuns } from '../hooks/useRuns';
 import { getMonthlySummary, getMonthlySeries } from '../utils/workoutUtils';
+import { formatDuration } from '../utils/runFormat';
 import { computePRAchievements, estimateOneRM, type PRAchievement, type PRType } from '../utils/prEngine';
 import { PR_TYPES } from '../utils/workoutDisplay';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
@@ -34,14 +35,22 @@ const fmtInt = (n: number) => String(n);
 
 const fmtKm = (n: number) => `${(Math.round(n * 10) / 10).toLocaleString()}`;
 
+const fmtHr = (n: number) => (n > 0 ? String(n) : '—');
+
+const fmtPace = (sec: number) => (sec > 0 ? formatDuration(sec) : '—');
+
 type Dir = 'up' | 'down' | 'flat';
 
-/** Compares this month to last; returns the change amount + percent (no label). */
-function compare(cur: number, prev: number, fmt: (n: number) => string): { dir: Dir; amount: string; pct: string } {
+/**
+ * Compares this month to last; returns the change amount + percent (no label).
+ * `invert` flips the up/down direction for metrics where lower is better (pace).
+ */
+function compare(cur: number, prev: number, fmt: (n: number) => string, invert = false): { dir: Dir; amount: string; pct: string } {
   const diff = cur - prev;
   if (diff === 0) return { dir: 'flat', amount: '—', pct: '' };
   if (prev === 0) return { dir: 'up', amount: fmt(cur), pct: 'new' };
-  const dir: Dir = diff > 0 ? 'up' : 'down';
+  let dir: Dir = diff > 0 ? 'up' : 'down';
+  if (invert) dir = dir === 'up' ? 'down' : 'up';
   return { dir, amount: fmt(Math.abs(diff)), pct: `${Math.abs(Math.round((diff / prev) * 100))}%` };
 }
 
@@ -51,8 +60,10 @@ const StatCard: React.FC<{
   prev: number;
   fmt: (n: number) => string;
   unit?: string;
-}> = ({ label, cur, prev, fmt, unit }) => {
-  const c = compare(cur, prev, fmt);
+  sub?: React.ReactNode;
+  invertTrend?: boolean;
+}> = ({ label, cur, prev, fmt, unit, sub, invertTrend }) => {
+  const c = compare(cur, prev, fmt, invertTrend);
   return (
     <Card className="mr-card">
       <span className="mr-card-label">{label}</span>
@@ -60,6 +71,7 @@ const StatCard: React.FC<{
         <span className="mr-card-value">{fmt(cur)}</span>
         {unit && <span className="mr-card-unit">{unit}</span>}
       </div>
+      {sub && <div className="mr-card-sub">{sub}</div>}
       <div className={`mr-trend mr-trend--${c.dir}`}>
         <span className="mr-trend-arrow">{c.dir === 'up' ? '▲' : c.dir === 'down' ? '▼' : '—'}</span>
         {c.amount !== '—' && <span className="mr-trend-amount">{c.amount}</span>}
@@ -228,6 +240,13 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const curAvgDur  = cur.activityCount  ? Math.round(cur.durationMin / cur.activityCount)   : 0;
   const prevAvgDur = prev.activityCount ? Math.round(prev.durationMin / prev.activityCount) : 0;
 
+  // Small breakdown of the combined Duration into lifting vs running.
+  const durationParts = [
+    cur.workoutDurationMin > 0 ? `${fmtDuration(cur.workoutDurationMin)} lifting` : null,
+    cur.runDurationMin > 0 ? `${fmtDuration(cur.runDurationMin)} running` : null,
+  ].filter(Boolean);
+  const durationBreakdown = durationParts.length > 0 ? durationParts.join(' · ') : null;
+
   return (
     <div className="mr-page" style={{ animation: 'fadeIn 0.5s ease-out' }}>
       <div className="mr-header">
@@ -257,12 +276,23 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
       <div className={`mr-body${locked ? ' mr-body--locked' : ''}`}>
         <div className="mr-grid">
           <StatCard label="Activities" cur={cur.activityCount} prev={prev.activityCount} fmt={fmtInt} />
-          <StatCard label="Duration" cur={cur.durationMin}   prev={prev.durationMin}   fmt={fmtDuration} />
+          <StatCard
+            label="Duration"
+            cur={cur.durationMin}
+            prev={prev.durationMin}
+            fmt={fmtDuration}
+            sub={durationBreakdown}
+          />
           <StatCard label="Volume"   cur={curVol}            prev={prevVol}            fmt={fmtVolume} unit={unit} />
-          <StatCard label="Distance" cur={cur.runDistanceKm} prev={prev.runDistanceKm} fmt={fmtKm} unit="km" />
+          <StatCard label="Total Reps" cur={cur.repsTotal}   prev={prev.repsTotal}     fmt={fmtInt} />
           <StatCard label="Sets"     cur={cur.setCount}      prev={prev.setCount}      fmt={fmtInt} />
           <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
           <StatCard label="Avg Session Time"     cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
+          <StatCard label="Distance" cur={cur.runDistanceKm} prev={prev.runDistanceKm} fmt={fmtKm} unit="km" />
+          <StatCard label="Avg Pace" cur={cur.paceSec}       prev={prev.paceSec}       fmt={fmtPace} unit="/km" invertTrend />
+          <StatCard label="Elevation" cur={cur.elevationGainM} prev={prev.elevationGainM} fmt={fmtInt} unit="m" />
+          <StatCard label="Calories" cur={cur.caloriesTotal} prev={prev.caloriesTotal} fmt={fmtInt} unit="kcal" />
+          <StatCard label="Avg Heart Rate"       cur={cur.avgHeartRate} prev={prev.avgHeartRate} fmt={fmtHr} unit="bpm" />
         </div>
 
         {/* Cross-month trend (toggle activities / duration / volume / sets / distance) */}

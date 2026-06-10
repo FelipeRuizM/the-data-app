@@ -13,6 +13,9 @@ export interface ActivityRun {
   startTime: Date;
   durationSeconds: number;
   distanceKm: number;
+  avgHeartRate?: number;
+  calories?: number;
+  elevationGainM?: number;
 }
 
 export interface ChartFilters {
@@ -395,13 +398,20 @@ export function getLastExerciseSession(
 // ─── Monthly Summary ──────────────────────────────────────────────────────────
 
 export interface MonthlySummary {
-  workoutCount: number;   // distinct workout sessions in the month
-  runCount: number;       // runs in the month
-  activityCount: number;  // workoutCount + runCount
-  durationMin: number;    // summed session + run durations, in minutes
-  volumeKg: number;       // Σ weight×reps across every set
-  setCount: number;       // total sets logged
-  runDistanceKm: number;  // Σ run distance
+  workoutCount: number;        // distinct workout sessions in the month
+  runCount: number;            // runs in the month
+  activityCount: number;       // workoutCount + runCount
+  durationMin: number;         // combined session + run durations, in minutes
+  workoutDurationMin: number;  // session durations only, in minutes
+  runDurationMin: number;      // run durations only, in minutes
+  volumeKg: number;            // Σ weight×reps across every set
+  repsTotal: number;           // Σ reps across every set
+  setCount: number;            // total sets logged
+  runDistanceKm: number;       // Σ run distance
+  paceSec: number;             // avg run pace in sec/km (total run secs / total km); 0 if no distance
+  caloriesTotal: number;       // Σ run calories
+  elevationGainM: number;      // Σ run elevation gain, in metres
+  avgHeartRate: number;        // mean bpm across activities (sessions + runs) that logged HR; 0 if none
 }
 
 /**
@@ -419,40 +429,61 @@ export function getMonthlySummary(
 
   const sessions = new Set<string>();
   const sessionDurSec = new Map<string, number>();
+  const sessionHR = new Map<string, number>(); // one HR per session
   let volumeKg = 0;
+  let repsTotal = 0;
   let setCount = 0;
 
   workouts.forEach(w => {
     if (w.startTime < start || w.startTime > end) return;
     sessions.add(w.id);
     volumeKg += w.weightKg * w.reps;
+    repsTotal += w.reps;
     setCount += 1;
     if (!sessionDurSec.has(w.id)) {
       const sec = w.endTime ? Math.max(0, (w.endTime.getTime() - w.startTime.getTime()) / 1000) : 0;
       sessionDurSec.set(w.id, sec);
     }
+    if (!sessionHR.has(w.id)) sessionHR.set(w.id, w.avgHeartRate || 0);
   });
 
-  let durationSec = 0;
-  sessionDurSec.forEach(s => { durationSec += s; });
+  let workoutDurSec = 0;
+  sessionDurSec.forEach(s => { workoutDurSec += s; });
+
+  // Average HR across every activity (workout session or run) that logged one.
+  const hrValues: number[] = [];
+  sessionHR.forEach(hr => { if (hr > 0) hrValues.push(hr); });
 
   let runCount = 0;
   let runDistanceKm = 0;
+  let runDurSec = 0;
+  let caloriesTotal = 0;
+  let elevationGainM = 0;
   runs.forEach(r => {
     if (r.startTime < start || r.startTime > end) return;
     runCount += 1;
     runDistanceKm += r.distanceKm;
-    durationSec += r.durationSeconds;
+    runDurSec += r.durationSeconds;
+    caloriesTotal += r.calories || 0;
+    elevationGainM += r.elevationGainM || 0;
+    if (r.avgHeartRate && r.avgHeartRate > 0) hrValues.push(r.avgHeartRate);
   });
 
   return {
     workoutCount: sessions.size,
     runCount,
     activityCount: sessions.size + runCount,
-    durationMin: Math.round(durationSec / 60),
+    durationMin: Math.round((workoutDurSec + runDurSec) / 60),
+    workoutDurationMin: Math.round(workoutDurSec / 60),
+    runDurationMin: Math.round(runDurSec / 60),
     volumeKg,
+    repsTotal,
     setCount,
     runDistanceKm: Math.round(runDistanceKm * 100) / 100,
+    paceSec: runDistanceKm > 0 ? Math.round(runDurSec / runDistanceKm) : 0,
+    caloriesTotal: Math.round(caloriesTotal),
+    elevationGainM: Math.round(elevationGainM),
+    avgHeartRate: hrValues.length ? Math.round(hrValues.reduce((a, b) => a + b, 0) / hrValues.length) : 0,
   };
 }
 
