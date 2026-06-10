@@ -6,6 +6,7 @@ import { PeopleManager } from '../components/settings/PeopleManager';
 import { FeaturedManager } from '../components/settings/FeaturedManager';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
+import { pageTitleStyle } from '../styles/typography';
 
 export const Settings: React.FC = () => {
   const { unit, toggleUnit } = useSettings();
@@ -25,7 +26,7 @@ export const Settings: React.FC = () => {
 
   return (
     <div style={{ padding: '0 32px', animation: 'fadeIn 0.5s ease-out' }}>
-      <h2 style={{ marginBottom: '24px', letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>Settings</h2>
+      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Settings</h2>
 
       <Card style={{ maxWidth: '600px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -110,6 +111,14 @@ export const Settings: React.FC = () => {
           {signingOut ? (isGuest ? 'Exiting...' : 'Signing out...') : (isGuest ? 'Exit Guest' : 'Sign Out')}
         </button>
       </Card>
+
+      {/* Version footer — number is injected at build time from git history */}
+      <div style={{
+        maxWidth: '600px', textAlign: 'center', padding: '32px 0 16px',
+        fontFamily: 'Inter', fontSize: '12px', color: 'var(--text-muted)',
+      }}>
+        The Data App · v{__APP_VERSION__}
+      </div>
     </div>
   );
 };

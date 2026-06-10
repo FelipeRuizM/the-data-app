@@ -45,7 +45,7 @@ export const VolumeChart: React.FC<Props> = ({ workouts }) => {
   if (workouts.length === 0) return null;
 
   return (
-    <Card style={{ height: '400px' }}>
+    <Card style={{ height: '360px' }}>
       <h3 style={{ fontFamily: 'Outfit', fontSize: '18px', marginBottom: '24px' }}>
         Volume Progression ({unit.toUpperCase()})
       </h3>

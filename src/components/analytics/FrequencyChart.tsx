@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Card } from '../common/Card';
-import { getWeeklyActivityFrequency, fillWeeklyGaps } from '../../utils/workoutUtils';
+import { getWeeklyActivityFrequency, fillWeeklyGaps, weekAxisTick } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
@@ -74,6 +74,8 @@ export const FrequencyChart: React.FC<Props> = ({ workouts, runs = [], fillGaps 
               axisLine={false}
               tickMargin={8}
               interval="preserveStartEnd"
+              minTickGap={32}
+              tickFormatter={weekAxisTick}
             />
             <YAxis
               stroke="var(--text-muted)"

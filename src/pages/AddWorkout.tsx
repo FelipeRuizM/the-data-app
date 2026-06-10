@@ -16,6 +16,7 @@ import { SET_TYPES, getSetLabel, getSetColor, type SetType } from '../utils/work
 import { Card } from '../components/common/Card';
 import { PeoplePicker } from '../components/common/PeoplePicker';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
+import { pageTitleStyle } from '../styles/typography';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 
 // ── Logger types ──────────────────────────────────────────────
@@ -348,7 +349,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
         >
           <ChevronLeft size={20} />
         </button>
-        <h2 style={{ margin: 0, letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>
+        <h2 style={pageTitleStyle}>
           {editingId ? 'Edit Workout' : 'Log New Workout'}
         </h2>
       </div>

@@ -207,8 +207,8 @@ export const PersonalRecords: React.FC<{ workouts: TaggedWorkout[] }> = ({ worko
           </div>
           <div className="pr-date">
             {repBased
-              ? (pr.maxReps > 0 ? format(pr.maxRepsDate, 'MMM d, yyyy') : '')
-              : (displayWeight > 0 ? format(pr.maxWeightDate, 'MMM d, yyyy') : '')}
+              ? (pr.maxReps > 0 ? format(pr.maxRepsDate, 'MM/yy') : '')
+              : (displayWeight > 0 ? format(pr.maxWeightDate, 'MM/yy') : '')}
           </div>
         </div>
 
@@ -217,7 +217,7 @@ export const PersonalRecords: React.FC<{ workouts: TaggedWorkout[] }> = ({ worko
             <div className="pr-stat-label">Max Set Volume</div>
             <div className="pr-vol-value">{displayVol > 0 ? `${displayVol.toLocaleString()} ${unit}` : '—'}</div>
           </div>
-          <div className="pr-date">{displayVol > 0 ? format(pr.maxVolumeDate, 'MMM d, yyyy') : ''}</div>
+          <div className="pr-date">{displayVol > 0 ? format(pr.maxVolumeDate, 'MM/yy') : ''}</div>
         </div>
 
         <div className="days-counter">

@@ -20,6 +20,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history — the app version is derived from the commit count
+          # at build time (see vite.config.ts).
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4

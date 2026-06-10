@@ -61,12 +61,20 @@ function getWeekKey(date: Date): string {
   return format(startOfWeek(date, { weekStartsOn: 0 }), 'yyyy-MM-dd');
 }
 
-/** Display label for a week, e.g. "Jan 06 - Jan 12". */
+/**
+ * Display label for a week — compact: "Jan 6 – 12", or "Jan 29 – Feb 4" when
+ * the week crosses a month boundary. Shown in chart tooltips; axes show only
+ * the week start via `weekAxisTick`.
+ */
 function getWeekLabel(date: Date): string {
   const start = startOfWeek(date, { weekStartsOn: 0 });
   const end = endOfWeek(date, { weekStartsOn: 0 });
-  return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd')}`;
+  const endFmt = start.getMonth() === end.getMonth() ? 'd' : 'MMM d';
+  return `${format(start, 'MMM d')} – ${format(end, endFmt)}`;
 }
+
+/** XAxis tick formatter for weekly charts: "Jan 6 – 12" → "Jan 6". */
+export const weekAxisTick = (label: string): string => label.split(' – ')[0];
 
 /**
  * Pads a sparse weekly series so that every calendar week between the first
@@ -102,9 +110,7 @@ export function fillWeeklyGaps<T extends { weekKey: string; label: string }>(
   let guard = 600;
   while (cursor.getTime() <= end.getTime() && guard-- > 0) {
     const key = format(cursor, 'yyyy-MM-dd');
-    const weekEnd = endOfWeek(cursor, weekOpts);
-    const label = `${format(cursor, 'MMM dd')} - ${format(weekEnd, 'MMM dd')}`;
-    result.push(existing.get(key) ?? zero(key, label));
+    result.push(existing.get(key) ?? zero(key, getWeekLabel(cursor)));
     cursor = addWeeks(cursor, 1);
   }
 

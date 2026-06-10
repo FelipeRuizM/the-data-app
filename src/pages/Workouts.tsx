@@ -19,19 +19,13 @@ import {
 } from '../utils/workoutDisplay';
 import { computeSetPRs, setPRKey, type SetPR } from '../utils/prEngine';
 import { labelStyle } from '../styles/formStyles';
+import { pageTitleStyle, cardTitleStyle, bodyTextStyle, metaTextStyle, statValueStyle } from '../styles/typography';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 
 const fmtDuration = (min: number) => {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
-};
-
-const statValueStyle: React.CSSProperties = {
-  fontFamily: 'Inter',
-  fontSize: '32px',
-  fontWeight: 'bold',
-  color: 'var(--text-primary)',
 };
 
 // ── PR badge shown next to a set that set a new record ──────────
@@ -111,133 +105,106 @@ const WorkoutCard: React.FC<{
         ✓ Saved
       </div>
 
-      <div onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Header row */}
+      <div onClick={() => setIsOpen(!isOpen)} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Header row — mirrors the Run card: small icon, 16px title, date on the right */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
           borderBottom: isOpen ? '1px solid var(--glass-border)' : 'none',
-          paddingBottom: isOpen ? '16px' : '0',
+          paddingBottom: isOpen ? '14px' : '0',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            {/* Category icon badge */}
-            <div style={{
-              width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-              background: `${catColor}1A`, border: `1px solid ${catColor}40`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', minWidth: 0 }}>
+            <CatIcon size={16} color={catColor} style={{ flexShrink: 0 }} />
+            <h3 style={cardTitleStyle}>{session.title || 'Workout'}</h3>
+            <span style={{
+              fontSize: '11px', fontFamily: 'Inter', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+              color: catColor, background: `${catColor}1A`,
+              border: `1px solid ${catColor}40`, borderRadius: '999px', padding: '2px 10px',
             }}>
-              <CatIcon size={22} color={catColor} />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '20px', fontFamily: 'Outfit', margin: 0 }}>{session.title || 'Workout'}</h3>
-                <span style={{
+              {session.category || 'Mixed'}
+            </span>
+            {prCount > 0 && (
+              <span
+                title={`${prCount} personal record${prCount > 1 ? 's' : ''} this session`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
                   fontSize: '11px', fontFamily: 'Inter', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.05em',
-                  color: catColor, background: `${catColor}1A`,
-                  border: `1px solid ${catColor}40`, borderRadius: '999px', padding: '2px 10px',
-                }}>
-                  {session.category || 'Mixed'}
-                </span>
-                {prCount > 0 && (
-                  <span
-                    title={`${prCount} personal record${prCount > 1 ? 's' : ''} this session`}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      fontSize: '11px', fontFamily: 'Inter', fontWeight: 700,
-                      color: '#FFC400', background: 'rgba(255,196,0,0.12)',
-                      border: '1px solid rgba(255,196,0,0.35)', borderRadius: '999px', padding: '2px 10px',
-                    }}
-                  >
-                    <Trophy size={12} /> {prCount} PR{prCount > 1 ? 's' : ''}
-                  </span>
-                )}
-                {isOpen
-                  ? <ChevronUp size={18} color="var(--accent-pink-main)" />
-                  : <ChevronDown size={18} color="var(--text-muted)" />}
-              </div>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                {format(session.startTime, 'EEEE, MMM do yyyy - h:mm a')}
+                  color: '#FFC400', background: 'rgba(255,196,0,0.12)',
+                  border: '1px solid rgba(255,196,0,0.35)', borderRadius: '999px', padding: '2px 10px',
+                }}
+              >
+                <Trophy size={12} /> {prCount} PR{prCount > 1 ? 's' : ''}
               </span>
-            </div>
+            )}
+            {isOpen
+              ? <ChevronUp size={18} color="var(--accent-pink-main)" />
+              : <ChevronDown size={18} color="var(--text-muted)" />}
           </div>
 
-          {canWrite && (
-            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
-              <select
-                value={session.category || 'Mixed'}
-                onChange={handleCategoryChange}
-                title="Change category"
-                style={{
-                  background: 'rgba(255,255,255,0.05)', color: catColor,
-                  border: `1px solid ${catColor}55`, padding: '6px 12px',
-                  borderRadius: '8px', fontFamily: 'Inter', fontWeight: 'bold',
-                  outline: 'none', cursor: 'pointer', appearance: 'auto',
-                }}
-              >
-                {['Push', 'Pull', 'Legs', 'Mixed'].map(c => (
-                  <option key={c} value={c} style={{ background: 'var(--bg-dark)' }}>{c}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => onEdit(session)}
-                title="Edit workout"
-                style={{
-                  width: '34px', height: '34px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '8px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-secondary)', transition: 'all 0.15s',
-                }}
-              >
-                <Pencil size={14} />
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <span style={{ ...metaTextStyle, whiteSpace: 'nowrap' }}>
+              {format(session.startTime, 'd MMM, HH:mm')}
+            </span>
+            {canWrite && (
+              <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <select
+                  value={session.category || 'Mixed'}
+                  onChange={handleCategoryChange}
+                  title="Change category"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)', color: catColor,
+                    border: `1px solid ${catColor}55`, padding: '5px 8px', fontSize: '12px',
+                    borderRadius: '8px', fontFamily: 'Inter', fontWeight: 'bold',
+                    outline: 'none', cursor: 'pointer', appearance: 'auto',
+                  }}
+                >
+                  {['Push', 'Pull', 'Legs', 'Mixed'].map(c => (
+                    <option key={c} value={c} style={{ background: 'var(--bg-dark)' }}>{c}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => onEdit(session)}
+                  title="Edit workout"
+                  style={{
+                    width: '30px', height: '30px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '8px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text-secondary)', transition: 'all 0.15s',
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', paddingTop: isOpen ? '0' : '4px' }}>
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</span>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter' }}>{Math.round(session.durSeconds / 60)} min</div>
-          </div>
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Volume</span>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter' }}>
-              {Math.round(session.volume * multiplier).toLocaleString()} {unit}
-            </div>
-          </div>
+        {/* Metrics row — compact, like the Run card */}
+        <div style={{ ...bodyTextStyle, display: 'flex', gap: '18px', flexWrap: 'wrap', paddingTop: isOpen ? '0' : '2px' }}>
+          <span>{Math.round(session.durSeconds / 60)} min</span>
+          <span>{Math.round(session.volume * multiplier).toLocaleString()} {unit}</span>
           {session.avgHeartRate > 0 && (
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg HR</span>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <HeartPulse size={15} color="#FB7185" /> {session.avgHeartRate} <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 400 }}>bpm</span>
-              </div>
-            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <HeartPulse size={13} style={{ color: '#FB7185' }} /> {session.avgHeartRate} bpm
+            </span>
           )}
           {session.gym && (
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gym</span>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={15} color="var(--text-muted)" /> {session.gym}
-              </div>
-            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <MapPin size={13} /> {session.gym}
+            </span>
           )}
           {session.people.length > 0 && (
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>With</span>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Users size={15} color="#60A5FA" /> {session.people.join(', ')}
-              </div>
-            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <Users size={13} style={{ color: '#60A5FA' }} /> {session.people.join(', ')}
+            </span>
           )}
         </div>
 
         {/* Workout description */}
         {session.description && (
-          <div style={{ color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '14px', lineHeight: 1.5, fontStyle: 'italic' }}>
+          <div style={{ ...metaTextStyle, lineHeight: 1.5, fontStyle: 'italic' }}>
             "{session.description}"
           </div>
         )}
@@ -358,7 +325,7 @@ export const Workouts: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) 
         </Card>
       </div>
 
-      <h2 style={{ marginBottom: '24px', letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>Workout History</h2>
+      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Workout History</h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
         {sessions.map(session => (

@@ -6,6 +6,7 @@ import {
 import { Card } from '../common/Card';
 import { useSettings } from '../../context/SettingsContext';
 import type { MonthlyPoint } from '../../utils/workoutUtils';
+import './ChartPills.css';
 
 interface Props {
   series: MonthlyPoint[];
@@ -63,35 +64,27 @@ export const MonthlyTrendChart: React.FC<Props> = ({ series, selectedMonthKey })
     : `${v} set${v === 1 ? '' : 's'}`;
 
   return (
-    <Card style={{ height: '340px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-        <h3 style={{ fontFamily: 'Outfit', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+    <Card style={{ height: '360px' }}>
+      <div className="dmc-header">
+        <h3 className="dmc-title">
           Monthly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : metric === 'distance' ? ' (km)' : ''}
         </h3>
-        <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '3px' }}>
-          {METRICS.map(m => {
-            const active = metric === m.key;
-            return (
-              <button
-                key={m.key}
-                onClick={() => setMetric(m.key)}
-                style={{
-                  background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  border: 'none', borderRadius: '7px', padding: '4px 11px',
-                  fontFamily: 'Outfit', fontSize: '12px', fontWeight: 600,
-                  color: active ? m.color : 'var(--text-muted)',
-                  cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s ease',
-                }}
-              >
-                {m.label}
-              </button>
-            );
-          })}
+        <div className="dmc-pills">
+          {METRICS.map(m => (
+            <button
+              key={m.key}
+              className={`dmc-pill ${metric === m.key ? 'dmc-pill--active' : ''}`}
+              style={metric === m.key ? { '--pill-color': m.color } as React.CSSProperties : {}}
+              onClick={() => setMetric(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {data.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontFamily: 'Outfit', fontSize: '14px' }}>No data yet</div>
+        <div className="dmc-empty">No data yet</div>
       ) : (
         <div style={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">

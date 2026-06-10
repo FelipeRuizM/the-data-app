@@ -8,11 +8,17 @@
 
 .pr-header {
   font-family: 'Outfit';
-  font-size: 28px;
   margin-bottom: 32px;
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* Page title — matches the shared pageTitleStyle scale (24px / 700) */
+.pr-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
 }
 
 /* ── Exercise search ───────────────────────────────────────────── */

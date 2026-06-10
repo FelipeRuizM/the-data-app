@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Card } from '../common/Card';
 import { useSettings } from '../../context/SettingsContext';
-import { getWeeklyMetric, fillWeeklyGaps, type MetricType } from '../../utils/workoutUtils';
+import { getWeeklyMetric, fillWeeklyGaps, weekAxisTick, type MetricType } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 import './ChartPills.css';
 
@@ -152,6 +152,8 @@ export const DynamicMetricChart: React.FC<Props> = ({
                 axisLine={false}
                 tickMargin={8}
                 interval="preserveStartEnd"
+                minTickGap={32}
+                tickFormatter={weekAxisTick}
               />
               <YAxis
                 stroke="var(--text-muted)"

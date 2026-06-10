@@ -36,7 +36,7 @@ export const MuscleChart: React.FC<Props> = ({ workouts }) => {
   if (workouts.length === 0) return null;
 
   return (
-    <Card style={{ height: '400px' }}>
+    <Card style={{ height: '360px' }}>
       <h3 style={{ fontFamily: 'Outfit', fontSize: '18px', marginBottom: '16px' }}>Muscle Group Split (Sets)</h3>
       <div style={{ flex: 1, minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">

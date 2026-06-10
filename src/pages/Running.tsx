@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRuns, type RunType } from '../hooks/useRuns';
 import { Card } from '../components/common/Card';
 import { labelStyle } from '../styles/formStyles';
+import { pageTitleStyle, sectionTitleStyle, statValueStyle } from '../styles/typography';
 import { formatDuration, runDifficulty } from '../utils/runFormat';
 
 const TYPE_COLORS: Record<RunType, string> = {
@@ -15,12 +16,6 @@ const TYPE_COLORS: Record<RunType, string> = {
   Explosion: '#FB7185',
   Long: '#60A5FA',
   Other: '#A78BFA',
-};
-
-const sectionTitle: React.CSSProperties = {
-  marginBottom: '24px',
-  letterSpacing: '-0.02em',
-  fontFamily: 'Outfit',
 };
 
 export const Running: React.FC = () => {
@@ -56,7 +51,7 @@ export const Running: React.FC = () => {
         boxSizing: 'border-box',
       }}
     >
-      <h2 style={sectionTitle}>Running</h2>
+      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Running</h2>
 
       {/* Stats */}
       <div
@@ -69,26 +64,26 @@ export const Running: React.FC = () => {
       >
         <Card>
           <div style={labelStyle}>Total Runs</div>
-          <div style={{ fontFamily: 'Inter', fontSize: '32px', fontWeight: 'bold' }}>
+          <div style={statValueStyle}>
             {stats.totalRuns}
           </div>
         </Card>
         <Card>
           <div style={labelStyle}>Total Distance</div>
-          <div style={{ fontFamily: 'Inter', fontSize: '32px', fontWeight: 'bold' }}>
+          <div style={statValueStyle}>
             {stats.totalDistance.toFixed(1)} <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>km</span>
           </div>
         </Card>
         <Card>
           <div style={labelStyle}>Total Moving Time</div>
-          <div style={{ fontFamily: 'Inter', fontSize: '32px', fontWeight: 'bold' }}>
+          <div style={statValueStyle}>
             {formatDuration(stats.totalTime)}
           </div>
         </Card>
       </div>
 
       {/* History */}
-      <h3 style={{ ...sectionTitle, fontSize: '18px' }}>History</h3>
+      <h3 style={{ ...sectionTitleStyle, marginBottom: '24px' }}>History</h3>
       {loading ? (
         <p style={{ color: 'var(--text-muted)' }}>Loading runs...</p>
       ) : runs.length === 0 ? (
@@ -141,7 +136,7 @@ export const Running: React.FC = () => {
                         {runDifficulty(run.difficulty).label} {run.difficulty}/10
                       </span>
                     )}
-                    <span style={{ color: 'var(--text-muted)' }}>{format(run.startTime, 'd MMM yyyy, HH:mm')}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{format(run.startTime, 'd MMM, HH:mm')}</span>
                   </div>
                   {run.location && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-secondary)', fontFamily: 'Inter', fontSize: '13px' }}>

@@ -110,14 +110,14 @@ export const SetSeriesChart: React.FC<Props> = ({ workouts }) => {
 
   if (chartData.length === 0) {
     return (
-      <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Card style={{ height: '360px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-muted)', fontFamily: 'Outfit' }}>No data for this range</p>
       </Card>
     );
   }
 
   return (
-    <Card style={{ height: '400px' }}>
+    <Card style={{ height: '360px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h3 style={{ fontFamily: 'Outfit', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>

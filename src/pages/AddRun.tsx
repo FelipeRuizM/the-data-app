@@ -11,6 +11,7 @@ import { usePeople } from '../context/PeopleContext';
 import { Card } from '../components/common/Card';
 import { PeoplePicker } from '../components/common/PeoplePicker';
 import { inputStyle, selectStyle, labelStyle } from '../styles/formStyles';
+import { pageTitleStyle } from '../styles/typography';
 import { parseTimeToSeconds, formatDuration, runDifficulty } from '../utils/runFormat';
 
 const emptyForm = () => ({
@@ -155,13 +156,14 @@ export const AddRun: React.FC = () => {
         >
           <ChevronLeft size={20} />
         </button>
-        <h2 style={{ margin: 0, letterSpacing: '-0.02em', fontFamily: 'Outfit' }}>
+        <h2 style={pageTitleStyle}>
           {editingId ? 'Edit Run' : 'Log a Run'}
         </h2>
       </div>
 
       <Card>
         <div
+          className="log-metadata-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',

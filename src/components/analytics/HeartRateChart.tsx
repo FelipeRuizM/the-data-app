@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Card } from '../common/Card';
-import { getWeeklyHeartRate } from '../../utils/workoutUtils';
+import { getWeeklyHeartRate, weekAxisTick } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
 
 interface Props {
@@ -62,6 +62,8 @@ export const HeartRateChart: React.FC<Props> = ({ workouts, runs = [] }) => {
               axisLine={false}
               tickMargin={8}
               interval="preserveStartEnd"
+              minTickGap={32}
+              tickFormatter={weekAxisTick}
             />
             <YAxis
               stroke="var(--text-muted)"

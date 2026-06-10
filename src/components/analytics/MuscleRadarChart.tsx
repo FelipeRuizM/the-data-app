@@ -60,7 +60,7 @@ export const MuscleRadarChart: React.FC<Props> = ({ workouts }) => {
     : `Muscle Split — ${cfg.label}`;
 
   return (
-    <Card style={{ height: '400px' }}>
+    <Card style={{ height: '360px' }}>
       <div className="dmc-header">
         <h3 className="dmc-title">{title}</h3>
         <div className="dmc-pills">

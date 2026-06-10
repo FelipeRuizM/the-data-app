@@ -27,6 +27,9 @@ const LoadingScreen = ({ label }: { label: string }) => (
       THE DATA APP
     </div>
     <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>{label}</p>
+    <span style={{ marginTop: '8px', fontFamily: 'Inter', fontSize: '12px', color: 'var(--text-muted)', opacity: 0.7 }}>
+      v{__APP_VERSION__}
+    </span>
   </div>
 );
 
