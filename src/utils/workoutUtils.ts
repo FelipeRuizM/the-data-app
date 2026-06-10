@@ -487,9 +487,16 @@ export function getMonthlySummary(
   };
 }
 
-export interface MonthlyPoint extends MonthlySummary {
-  monthKey: string; // 'yyyy-MM' — sortable
-  label: string;    // 'MMM yy'
+export interface MonthlyPoint {
+  monthKey: string;       // 'yyyy-MM' — sortable
+  label: string;          // 'MMM yy'
+  workoutCount: number;   // distinct workout sessions in the month
+  runCount: number;       // runs in the month
+  activityCount: number;  // workoutCount + runCount
+  durationMin: number;    // combined session + run durations, in minutes
+  volumeKg: number;       // Σ weight×reps across every set
+  setCount: number;       // total sets logged
+  runDistanceKm: number;  // Σ run distance
 }
 
 /**
