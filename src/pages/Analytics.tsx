@@ -8,6 +8,8 @@ import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
 import { MuscleRadarChart } from '../components/analytics/MuscleRadarChart';
 import { MainExercises } from '../components/analytics/MainExercises';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
+import { HeartRateChart } from '../components/analytics/HeartRateChart';
+import { formatDuration } from '../utils/runFormat';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
 import { useRuns } from '../hooks/useRuns';
@@ -223,6 +225,21 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     : v >= 1000    ? `${(v / 1000).toFixed(1)}k`
     : String(v);
 
+  // ── Run + heart-rate metrics (across the time range) ─────────────────────
+  const runStats = useMemo(() => {
+    const totalKm = rangeRuns.reduce((s, r) => s + r.distanceKm, 0);
+    const totalSec = rangeRuns.reduce((s, r) => s + r.durationSeconds, 0);
+    return { totalKm, paceSec: totalKm > 0 ? totalSec / totalKm : 0 };
+  }, [rangeRuns]);
+
+  const avgHeartRate = useMemo(() => {
+    const sessions = groupWorkoutSessions(filteredWorkouts);
+    const vals: number[] = [];
+    sessions.forEach(s => { if (s.avgHeartRate > 0) vals.push(s.avgHeartRate); });
+    rangeRuns.forEach(r => { if (r.avgHeartRate > 0) vals.push(r.avgHeartRate); });
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+  }, [filteredWorkouts, rangeRuns]);
+
   // ── Weekly streak (all-time, consecutive active weeks ending at the most
   //    recent workout's week) ──────────────────────────────────────────────
   const streak = useMemo(() => {
@@ -372,6 +389,27 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
           <span className="metric-value">{metrics.avgReps}</span>
         </div>
         <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Total Distance</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="metric-value">{runStats.totalKm.toFixed(1)}</span>
+            <span className="metric-unit">KM</span>
+          </div>
+        </div>
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Avg Pace</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="metric-value">{runStats.paceSec > 0 ? formatDuration(runStats.paceSec) : '—'}</span>
+            {runStats.paceSec > 0 && <span className="metric-unit">/KM</span>}
+          </div>
+        </div>
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Avg Heart Rate</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="metric-value">{avgHeartRate > 0 ? avgHeartRate : '—'}</span>
+            {avgHeartRate > 0 && <span className="metric-unit">BPM</span>}
+          </div>
+        </div>
+        <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Weekly Streak</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span className="metric-value">
@@ -392,13 +430,26 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
 
       {/* ── Charts Grid ────────────────────────────────────────── */}
       <div className="analytics-charts-grid">
+        {/* Workouts and runs get their own weekly graph for accurate per-type data */}
         <DynamicMetricChart
+          title="Weekly Workouts"
+          metrics={['volume', 'reps', 'sets', 'duration']}
           workouts={filteredWorkouts}
-          runs={filters.exercise ? [] : rangeRuns}
           fillGaps
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
+        {!filters.exercise && (
+          <DynamicMetricChart
+            title="Weekly Runs"
+            metrics={['distance', 'duration', 'pace']}
+            workouts={[]}
+            runs={rangeRuns}
+            fillGaps
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+          />
+        )}
         <FrequencyChart
           workouts={filteredWorkouts}
           runs={filters.exercise ? [] : rangeRuns}
@@ -406,6 +457,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
+        {!filters.exercise && <HeartRateChart workouts={filteredWorkouts} runs={rangeRuns} />}
         {!filters.exercise && <MainExercises workouts={filteredWorkouts} />}
         {!filters.exercise && <MuscleSetCountChart workouts={filteredWorkouts} />}
       </div>

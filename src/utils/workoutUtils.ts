@@ -3,7 +3,7 @@ import type { WorkoutSet } from './csvParser';
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
 
-export type MetricType = 'volume' | 'reps' | 'sets' | 'duration' | 'distance';
+export type MetricType = 'volume' | 'reps' | 'sets' | 'duration' | 'distance' | 'pace';
 
 /**
  * Minimal structural shape of a run needed by the analytics aggregators. Keeps
@@ -154,6 +154,50 @@ export function getWeeklyActivityFrequency(
 
   return Array.from(weekMap.entries())
     .map(([weekKey, { label, ids, runs: runCount }]) => ({ weekKey, label, workoutCount: ids.size + runCount }))
+    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
+}
+
+// ─── Weekly Average Heart Rate ───────────────────────────────────────────────
+
+export interface WeeklyHeartRatePoint {
+  weekKey: string;
+  label: string;
+  value: number; // average bpm across activities that logged HR that week
+}
+
+/**
+ * Weekly average heart rate across activities that recorded one. Workout HR is
+ * per-session (deduped by id so repeated set rows don't skew it); each run
+ * contributes its own HR. Weeks with no HR data are omitted.
+ */
+export function getWeeklyHeartRate(
+  workouts: (WorkoutSet & { id: string })[],
+  runs: { startTime: Date; avgHeartRate: number }[] = [],
+): WeeklyHeartRatePoint[] {
+  const map = new Map<string, { label: string; sum: number; n: number }>();
+  const seen = new Map<string, Set<string>>(); // weekKey → workout ids already counted
+
+  const bump = (date: Date, hr: number) => {
+    const wk = getWeekKey(date);
+    if (!map.has(wk)) map.set(wk, { label: getWeekLabel(date), sum: 0, n: 0 });
+    const e = map.get(wk)!;
+    e.sum += hr;
+    e.n += 1;
+  };
+
+  workouts.forEach(w => {
+    if (!w.avgHeartRate) return;
+    const wk = getWeekKey(w.startTime);
+    if (!seen.has(wk)) seen.set(wk, new Set());
+    if (seen.get(wk)!.has(w.id)) return; // one HR per session
+    seen.get(wk)!.add(w.id);
+    bump(w.startTime, w.avgHeartRate);
+  });
+
+  runs.forEach(r => { if (r.avgHeartRate) bump(r.startTime, r.avgHeartRate); });
+
+  return Array.from(map.entries())
+    .map(([weekKey, e]) => ({ weekKey, label: e.label, value: Math.round(e.sum / e.n) }))
     .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
 }
 
@@ -542,6 +586,17 @@ export function getWeeklyMetric(
   } else if (metric === 'distance') {
     runs.forEach(r => { map.get(ensure(r.startTime))!.value += r.distanceKm; });
     map.forEach(pt => { pt.value = Math.round(pt.value * 100) / 100; });
+  } else if (metric === 'pace') {
+    // Weekly average pace = total run seconds / total run km, in sec/km.
+    const acc = new Map<string, { sec: number; km: number }>();
+    runs.forEach(r => {
+      const wk = ensure(r.startTime);
+      const a = acc.get(wk) ?? { sec: 0, km: 0 };
+      a.sec += r.durationSeconds;
+      a.km += r.distanceKm;
+      acc.set(wk, a);
+    });
+    acc.forEach((a, wk) => { map.get(wk)!.value = a.km > 0 ? Math.round(a.sec / a.km) : 0; });
   } else if (metric === 'volume') {
     // Leave as-is; caller converts kg→lbs if needed
   } else {

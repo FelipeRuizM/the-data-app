@@ -11,6 +11,10 @@ import type { TaggedWorkout } from '../../hooks/useWorkouts';
 interface Props {
   workouts: TaggedWorkout[];
   runs?: { startTime: Date; durationSeconds: number; distanceKm: number }[];
+  /** Heading prefix, e.g. "Weekly Workouts". Defaults to "Weekly". */
+  title?: string;
+  /** Restrict the selectable metrics (and their order). Defaults to all. */
+  metrics?: MetricType[];
   fillGaps?: boolean;
   rangeStart?: Date | null;
   rangeEnd?: Date | null;
@@ -33,17 +37,22 @@ const METRICS: MetricConfig[] = [
   { key: 'sets',     label: 'Sets',     color: '#9D00FF', gradId: 'dmcSets', gradTop: '#9D00FF', gradBot: '#6600CC' },
   { key: 'duration', label: 'Duration', color: '#FF85B3', gradId: 'dmcDur',  gradTop: '#FF85B3', gradBot: '#E05080' },
   { key: 'distance', label: 'Distance', color: '#4ADE80', gradId: 'dmcDist', gradTop: '#4ADE80', gradBot: '#22A35A' },
+  { key: 'pace',     label: 'Pace',     color: '#38BDF8', gradId: 'dmcPace', gradTop: '#38BDF8', gradBot: '#0E7FB8' },
 ];
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
 
-function yTickFormatter(v: number, metric: MetricType, _unit: string): string {
-  if (metric === 'volume') {
-    const val = v;
-    return val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val);
-  }
+const fmtPace = (sec: number) => {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
+
+function yTickFormatter(v: number, metric: MetricType): string {
+  if (metric === 'volume') return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v);
   if (metric === 'duration') return `${v}m`;
   if (metric === 'distance') return `${v}km`;
+  if (metric === 'pace') return fmtPace(v);
   return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v);
 }
 
@@ -54,14 +63,29 @@ function tooltipFormatter(value: unknown, metric: MetricType, unit: string): [st
   if (metric === 'sets')     return [`${n.toLocaleString()} sets`, 'Sets'];
   if (metric === 'duration') return [`${n} min`, 'Duration'];
   if (metric === 'distance') return [`${n.toLocaleString()} km`, 'Distance'];
+  if (metric === 'pace')     return [`${fmtPace(n)} /km`, 'Pace'];
   return [String(n), ''];
+}
+
+function metricSuffix(metric: MetricType, unit: string): string {
+  if (metric === 'volume')   return ` (${unit.toUpperCase()})`;
+  if (metric === 'duration') return ' (min)';
+  if (metric === 'distance') return ' (km)';
+  if (metric === 'pace')     return ' (/km)';
+  return '';
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export const DynamicMetricChart: React.FC<Props> = ({ workouts, runs = [], fillGaps = false, rangeStart, rangeEnd }) => {
+export const DynamicMetricChart: React.FC<Props> = ({
+  workouts, runs = [], title, metrics, fillGaps = false, rangeStart, rangeEnd,
+}) => {
   const { unit } = useSettings();
-  const [metric, setMetric] = useState<MetricType>('duration');
+  const visible = useMemo(
+    () => (metrics ? METRICS.filter(m => metrics.includes(m.key)) : METRICS),
+    [metrics],
+  );
+  const [metric, setMetric] = useState<MetricType>(metrics && metrics.length ? metrics[0] : 'duration');
 
   const cfg = METRICS.find(m => m.key === metric)!;
 
@@ -88,9 +112,9 @@ export const DynamicMetricChart: React.FC<Props> = ({ workouts, runs = [], fillG
 
       {/* ── Header row with metric pills ─────────────────────── */}
       <div className="dmc-header">
-        <h3 className="dmc-title">Weekly {cfg.label}{metric === 'volume' ? ` (${unit.toUpperCase()})` : metric === 'duration' ? ' (min)' : metric === 'distance' ? ' (km)' : ''}</h3>
+        <h3 className="dmc-title">{title ? `${title} · ${cfg.label}` : `Weekly ${cfg.label}`}{metricSuffix(metric, unit)}</h3>
         <div className="dmc-pills">
-          {METRICS.map(m => (
+          {visible.map(m => (
             <button
               key={m.key}
               className={`dmc-pill ${metric === m.key ? 'dmc-pill--active' : ''}`}
@@ -133,7 +157,7 @@ export const DynamicMetricChart: React.FC<Props> = ({ workouts, runs = [], fillG
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={v => yTickFormatter(v, metric, unit)}
+                tickFormatter={v => yTickFormatter(v, metric)}
               />
               <Tooltip
                 contentStyle={{
