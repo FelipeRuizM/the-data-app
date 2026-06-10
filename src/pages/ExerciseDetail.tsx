@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Star } from 'lucide-react';
 import { subDays, subYears } from 'date-fns';
 import { ExerciseMetricChart } from '../components/analytics/ExerciseMetricChart';
 import { SetSeriesChart } from '../components/analytics/SetSeriesChart';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
+import { useFeatured } from '../context/FeaturedContext';
+import { useAuth } from '../context/AuthContext';
 import { getExerciseSessions, type ExerciseMetric } from '../utils/workoutUtils';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 import './ExerciseDetail.css';
@@ -43,9 +45,20 @@ export const ExerciseDetail: React.FC<Props> = ({ workouts }) => {
   const exerciseTitle = decodeURIComponent(name ?? '');
   const { unit } = useSettings();
   const { getMuscleGroup } = useExercises();
+  const { isFeatured, toggleFeatured } = useFeatured();
+  const { canWrite } = useAuth();
 
   const [view, setView] = useState<ExerciseMetric>('bestSet');
   const [timeRange, setTimeRange] = useState<TimeRange>('1y');
+  const pinned = isFeatured(exerciseTitle);
+
+  const togglePin = async () => {
+    try {
+      await toggleFeatured(exerciseTitle);
+    } catch (err) {
+      console.error('Failed to toggle featured exercise:', err);
+    }
+  };
 
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
 
@@ -70,11 +83,14 @@ export const ExerciseDetail: React.FC<Props> = ({ workouts }) => {
     const best1rm = allSessions.reduce((m, s) => Math.max(m, s.est1rmKg), 0);
     const heaviest = allSessions.reduce((m, s) => Math.max(m, s.heaviestKg), 0);
     const bestSet = allSessions.reduce((m, s) => Math.max(m, s.bestSetKg), 0);
+    const latestMs = allSets.reduce((m, w) => Math.max(m, w.startTime.getTime()), 0);
+    const daysAgo = latestMs > 0 ? Math.floor((new Date().getTime() - latestMs) / 86_400_000) : null;
     return {
       sessionCount: allSessions.length,
       best1rm: Math.round(best1rm * multiplier),
       heaviest: Math.round(heaviest * multiplier),
       bestSet: Math.round(bestSet * multiplier),
+      lastTrained: daysAgo,
     };
   }, [allSets, multiplier]);
 
@@ -88,7 +104,19 @@ export const ExerciseDetail: React.FC<Props> = ({ workouts }) => {
 
       <div className="exd-header">
         <div>
-          <h2 className="exd-title">{exerciseTitle}</h2>
+          <div className="exd-title-row">
+            <h2 className="exd-title">{exerciseTitle}</h2>
+            {canWrite && (
+              <button
+                className={`exd-pin ${pinned ? 'exd-pin--active' : ''}`}
+                onClick={togglePin}
+                title={pinned ? 'Remove from featured Records' : 'Feature on Records page'}
+              >
+                <Star size={14} fill={pinned ? 'currentColor' : 'none'} />
+                {pinned ? 'Featured' : 'Feature'}
+              </button>
+            )}
+          </div>
           <span className="exd-muscle">{muscleGroup}</span>
         </div>
         <div className="exd-time-selector">
@@ -133,6 +161,17 @@ export const ExerciseDetail: React.FC<Props> = ({ workouts }) => {
               <div className="exd-stat-value-row">
                 <span className="exd-stat-value">{summary.bestSet.toLocaleString()}</span>
                 <span className="exd-stat-unit">{unit}</span>
+              </div>
+            </div>
+            <div className="exd-stat glass-panel">
+              <span className="exd-stat-label">Last Trained</span>
+              <div className="exd-stat-value-row">
+                <span className="exd-stat-value">
+                  {summary.lastTrained === null ? '—' : summary.lastTrained === 0 ? 'Today' : summary.lastTrained}
+                </span>
+                {summary.lastTrained !== null && summary.lastTrained > 0 && (
+                  <span className="exd-stat-unit">{summary.lastTrained === 1 ? 'day ago' : 'days ago'}</span>
+                )}
               </div>
             </div>
           </div>

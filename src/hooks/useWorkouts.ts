@@ -7,6 +7,32 @@ import { useAuth } from '../context/AuthContext';
 
 export type TaggedWorkout = WorkoutSet & { id: string, category?: string };
 
+// Raw Realtime DB document shape (snake_case, as written by the import script).
+interface RawSet {
+  weight_kg?: number | string;
+  reps?: number | string;
+  set_index?: number;
+  set_type?: string;
+  duration_seconds?: number;
+}
+interface RawExercise {
+  exercise_title?: string;
+  exercise_notes?: string;
+  sets?: RawSet[];
+}
+interface RawWorkoutDoc {
+  start_time?: string;
+  end_time?: string;
+  category?: string;
+  title?: string;
+  description?: string;
+  gym?: string;
+  avg_heart_rate?: number | string;
+  people?: string[];
+  exercises?: RawExercise[];
+}
+type RawWorkouts = Record<string, RawWorkoutDoc> | RawWorkoutDoc[] | null;
+
 export const useWorkouts = () => {
   const { dataUid } = useAuth();
   const uid = dataUid;
@@ -22,15 +48,15 @@ export const useWorkouts = () => {
     setLoading(true);
     const BODYWEIGHT_EXERCISES = ['Pull Up', 'Chin Up', 'Dip', 'Push Up', 'Muscle Up'];
 
-    const parseDataToFlat = (data: any): TaggedWorkout[] => {
+    const parseDataToFlat = (data: NonNullable<RawWorkouts>): TaggedWorkout[] => {
       const flatData: TaggedWorkout[] = [];
 
       // Realtime DB can be an array OR an object with strings as keys
-      const entries = Array.isArray(data)
+      const entries: [string, RawWorkoutDoc][] = Array.isArray(data)
         ? data.map((v, i) => [i.toString(), v])
         : Object.entries(data);
 
-      entries.forEach(([dbKey, item]: any) => {
+      entries.forEach(([dbKey, item]) => {
         if (!item || !item.exercises) return;
 
         const startTimeString = String(item.start_time);
@@ -38,16 +64,16 @@ export const useWorkouts = () => {
         try {
           startTime = parse(startTimeString, 'd MMM yyyy, HH:mm', new Date());
           if (isNaN(startTime.getTime())) startTime = new Date(startTimeString);
-        } catch (e) { }
+        } catch { /* keep fallback */ }
 
         const isFeb1OrLater = startTime >= new Date('2026-02-01');
         const bodyweightAddition = isFeb1OrLater ? 80 : 73;
 
-        item.exercises.forEach((ex: any) => {
+        item.exercises.forEach((ex) => {
           const rootTitle = ex.exercise_title || '';
           const isBodyweight = BODYWEIGHT_EXERCISES.includes(rootTitle);
 
-          ex.sets.forEach((s: any) => {
+          (ex.sets ?? []).forEach((s) => {
             let finalWeight = Number(s.weight_kg) || 0;
             if (isBodyweight) finalWeight += bodyweightAddition;
 
@@ -65,7 +91,7 @@ export const useWorkouts = () => {
               supersetId: '',
               exerciseNotes: ex.exercise_notes || '',
               setIndex: s.set_index || 0,
-              setType: s.set_type || 'normal',
+              setType: (s.set_type as WorkoutSet['setType']) || 'normal',
               weightKg: finalWeight,
               reps: Number(s.reps) || 0,
               distanceKm: 0,
@@ -83,7 +109,7 @@ export const useWorkouts = () => {
     const workoutsRef = ref(realtimeDb, path);
     console.log(`[DB] Subscribing to Realtime Database (${path})`);
     const unsubscribe = onValue(workoutsRef, (snapshot) => {
-      const data = snapshot.val();
+      const data = snapshot.val() as RawWorkouts;
       if (data) {
         const flat = parseDataToFlat(data);
         console.log(`[DB] Fetched ${flat.length} sets across ${new Set(flat.map(w => w.id)).size} workouts`);

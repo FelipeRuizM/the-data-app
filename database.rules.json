@@ -2,7 +2,7 @@
   "rules": {
     "users": {
       "$uid": {
-        ".read": true,
+        ".read": "$uid === auth.uid || $uid === '3WonULS2gRZwtJ6OAh7YpM1Sn9v1'",
         ".write": "$uid === auth.uid"
       }
     }

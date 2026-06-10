@@ -109,81 +109,203 @@
   color: var(--accent-pink-main);
 }
 
-.champions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 48px;
+/* ── Section headers (Featured / Hall of Fame) ─────────────────── */
+
+.pr-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
-.champion-card {
+.pr-section-head--spaced {
+  margin-top: 44px;
+}
+
+.pr-section-title {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.pr-section-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ── Muscle-group filter chips ─────────────────────────────────── */
+
+.pr-muscle-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.pr-filter-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pr-filter-chip:hover {
+  color: var(--text-primary);
+  background: var(--glass-hover-bg);
+}
+
+.pr-filter-chip--active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Muscle group block ────────────────────────────────────────── */
+
+.pr-muscle-group {
+  margin-bottom: 32px;
+}
+
+.pr-group-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.pr-group-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pr-group-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0;
+}
+
+/* ── Grids ─────────────────────────────────────────────────────── */
+
+.pr-featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.pr-hof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────── */
+
+.pr-featured-card,
+.pr-hof-card {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.pr-featured-card {
+  padding: 26px 28px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-  transition: all var(--transition-normal);
 }
 
-/* Left accent bar in the tier color — same motif as the history cards */
-.champion-card::before {
+.pr-hof-card {
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Left accent bar in the card's muscle-group color */
+.pr-featured-card::before,
+.pr-hof-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   width: 4px;
-  background: var(--tier-color, var(--accent-pink-main));
+  background: var(--accent-bar, var(--accent-pink-main));
 }
 
-.champion-card:hover {
+.pr-featured-card:hover,
+.pr-hof-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
   background: var(--glass-hover-bg);
 }
 
-/* Gold / Silver / Bronze identity — a tinted bar + a faint matching border */
-.champion-card.gold   { --tier-color: #FFD700; border-color: rgba(255, 215, 0, 0.18); }
-.champion-card.silver { --tier-color: #C0C0D2; border-color: rgba(192, 192, 210, 0.18); }
-.champion-card.bronze { --tier-color: #CD7F32; border-color: rgba(205, 127, 50, 0.18); }
-
-.hall-of-fame-title {
-  font-family: 'Outfit';
-  font-size: 22px;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 12px;
-  margin-bottom: 24px;
+.pr-featured-star {
+  position: absolute;
+  top: 15px;
+  right: 38px;
+  pointer-events: none;
 }
 
-.hof-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+.pr-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-right: 20px;
 }
 
-.hof-card {
-  position: relative;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  transition: all 0.2s ease, transform 0.2s ease;
+.pr-card-title {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.hof-card:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255, 255, 255, 0.15);
+.pr-card-muscle {
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
-/* Clickable-card affordance (applies to champions + hof) */
+/* Clickable-card affordance */
 .pr-card-clickable {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 .pr-card-clickable:focus-visible {
@@ -214,6 +336,13 @@
   font-family: 'Inter';
 }
 
+.pr-stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .pr-value {
   font-size: 22px;
   font-weight: 800;
@@ -233,11 +362,20 @@
 
 .days-counter {
   margin-top: 16px;
-  padding-top: 16px;
+  padding-top: 14px;
   border-top: 1px dashed rgba(255,255,255,0.05);
   font-size: 13px;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.pr-empty {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  padding: 48px 0;
 }

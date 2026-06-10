@@ -255,7 +255,7 @@ export const AddWorkout: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }
     }
   };
 
-  const updateSet = (exIdx: number, sIdx: number, field: keyof LogSet, value: any) =>
+  const updateSet = (exIdx: number, sIdx: number, field: keyof LogSet, value: LogSet[keyof LogSet]) =>
     setLogExercises(prev => prev.map((ex, ei) =>
       ei !== exIdx ? ex : { ...ex, sets: ex.sets.map((s, si) => si === sIdx ? { ...s, [field]: value } : s) }
     ));

@@ -23,7 +23,11 @@
       "PowerShell(npx tsc -p tsconfig.app.json --noEmit)",
       "PowerShell(npm run build 2>&1)",
       "Bash(grep -iE \"^\\(gauge|zap|rocket|trending-up|trophy|medal|award|target|flame|crown\\).js$\")",
-      "PowerShell(npm run lint)"
+      "PowerShell(npm run lint)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/the-data-app/src/main.tsx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/the-data-app/src/App.tsx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/the-data-app/src/pages/Analytics.tsx)",
+      "Bash(curl -s http://localhost:5173/the-data-app/src/App.tsx)"
     ]
   }
 }

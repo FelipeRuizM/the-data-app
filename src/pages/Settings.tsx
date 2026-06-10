@@ -3,6 +3,7 @@ import { Card } from '../components/common/Card';
 import { ExerciseManager } from '../components/settings/ExerciseManager';
 import { GymManager } from '../components/settings/GymManager';
 import { PeopleManager } from '../components/settings/PeopleManager';
+import { FeaturedManager } from '../components/settings/FeaturedManager';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -64,6 +65,10 @@ export const Settings: React.FC = () => {
           <span style={{ color: unit === 'kg' ? 'var(--accent-pink-main)' : 'var(--text-secondary)', transition: 'color 0.3s ease' }}>Metric (KG)</span>
           <span style={{ color: unit === 'lbs' ? 'var(--accent-pink-main)' : 'var(--text-secondary)', transition: 'color 0.3s ease' }}>Imperial (LBS)</span>
         </div>
+      </Card>
+
+      <Card style={{ maxWidth: '600px', marginTop: '24px' }}>
+        <FeaturedManager />
       </Card>
 
       <Card style={{ maxWidth: '600px', marginTop: '24px' }}>

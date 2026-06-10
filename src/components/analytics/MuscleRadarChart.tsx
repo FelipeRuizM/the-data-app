@@ -8,6 +8,7 @@ import { useExercises } from '../../context/ExercisesContext';
 import { useSettings } from '../../context/SettingsContext';
 import { getVolumeByMuscleGroup, MUSCLE_GROUPS, type MuscleGroupPoint } from '../../utils/workoutUtils';
 import type { WorkoutSet } from '../../utils/csvParser';
+import './ChartPills.css';
 
 interface Props {
   workouts: WorkoutSet[];

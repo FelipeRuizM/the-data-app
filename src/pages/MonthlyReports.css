@@ -154,6 +154,77 @@
   color: var(--text-primary);
 }
 
+/* ── Monthly run list ──────────────────────────────────────────── */
+
+.mr-run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mr-run-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mr-run-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mr-run-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.mr-run-type {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.mr-run-date {
+  margin-left: auto;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mr-run-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.mr-run-metric-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mr-run-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 24px 0;
+}
+
 /* ── Stat grid ─────────────────────────────────────────────────── */
 
 .mr-grid {

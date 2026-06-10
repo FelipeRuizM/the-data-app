@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Trophy, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trophy, Lock, Activity, Dumbbell, Footprints, HeartPulse, Flame } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, format, isSameMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
-import { useRuns } from '../hooks/useRuns';
+import { useRuns, type Run, type RunType } from '../hooks/useRuns';
 import { getMonthlySummary, getMonthlySeries } from '../utils/workoutUtils';
 import { formatDuration } from '../utils/runFormat';
 import { computePRAchievements, estimateOneRM, type PRAchievement, type PRType } from '../utils/prEngine';
@@ -13,6 +13,7 @@ import { MuscleRadarChart } from '../components/analytics/MuscleRadarChart';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
 import { MainExercises } from '../components/analytics/MainExercises';
 import { MonthlyTrendChart } from '../components/analytics/MonthlyTrendChart';
+import { SectionHeader } from '../components/common/SectionHeader';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 import './MonthlyReports.css';
 
@@ -212,6 +213,53 @@ const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ 
   );
 };
 
+// ── Compact list of the runs logged in the selected month ─────────────────────
+const RUN_TYPE_COLORS: Record<RunType, string> = {
+  Light: '#4ADE80',
+  Explosion: '#FB7185',
+  Long: '#60A5FA',
+  Other: '#A78BFA',
+};
+
+const MonthRunList: React.FC<{ runs: Run[] }> = ({ runs }) => {
+  if (runs.length === 0) {
+    return <div className="mr-run-empty">No runs logged this month.</div>;
+  }
+  return (
+    <Card>
+      <div className="mr-run-list">
+        {runs.map(run => (
+          <div key={run.id} className="mr-run-row" style={{ borderLeft: `3px solid ${RUN_TYPE_COLORS[run.type]}` }}>
+            <div className="mr-run-row-head">
+              <Footprints size={15} style={{ color: RUN_TYPE_COLORS[run.type], flexShrink: 0 }} />
+              <span className="mr-run-title">{run.title || 'Run'}</span>
+              <span
+                className="mr-run-type"
+                style={{ color: RUN_TYPE_COLORS[run.type], border: `1px solid ${RUN_TYPE_COLORS[run.type]}55` }}
+              >
+                {run.type}
+              </span>
+              <span className="mr-run-date">{format(run.startTime, 'd MMM, HH:mm')}</span>
+            </div>
+            <div className="mr-run-metrics">
+              <span>{run.distanceKm.toFixed(2)} km</span>
+              <span>{formatDuration(run.durationSeconds)}</span>
+              {run.pace && <span>{run.pace}</span>}
+              {run.elevationGainM > 0 && <span>↑ {run.elevationGainM} m</span>}
+              {run.avgHeartRate > 0 && (
+                <span className="mr-run-metric-icon"><HeartPulse size={12} style={{ color: '#FB7185' }} /> {run.avgHeartRate} bpm</span>
+              )}
+              {run.calories > 0 && (
+                <span className="mr-run-metric-icon"><Flame size={12} style={{ color: '#F59E0B' }} /> {run.calories.toLocaleString()} kcal</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+};
+
 export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   const { unit } = useSettings();
   const { runs } = useRuns();
@@ -231,6 +279,17 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
     () => workouts.filter(w => isSameMonth(w.startTime, month)),
     [workouts, month],
   );
+  const monthRuns = useMemo(
+    () => runs
+      .filter(r => isSameMonth(r.startTime, month))
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime()),
+    [runs, month],
+  );
+
+  // Only surface the Workouts / Runs sections when that activity type is
+  // relevant this month or last (so the comparison cards mean something).
+  const showWorkouts = cur.workoutCount > 0 || prev.workoutCount > 0;
+  const showRuns     = cur.runCount > 0 || prev.runCount > 0;
 
   const curVol  = Math.round(cur.volumeKg * multiplier);
   const prevVol = Math.round(prev.volumeKg * multiplier);
@@ -274,49 +333,75 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
 
       <div className="mr-locked-region">
       <div className={`mr-body${locked ? ' mr-body--locked' : ''}`}>
-        <div className="mr-grid">
-          <StatCard label="Activities" cur={cur.activityCount} prev={prev.activityCount} fmt={fmtInt} />
-          <StatCard
-            label="Duration"
-            cur={cur.durationMin}
-            prev={prev.durationMin}
-            fmt={fmtDuration}
-            sub={durationBreakdown}
-          />
-          <StatCard label="Volume"   cur={curVol}            prev={prevVol}            fmt={fmtVolume} unit={unit} />
-          <StatCard label="Total Reps" cur={cur.repsTotal}   prev={prev.repsTotal}     fmt={fmtInt} />
-          <StatCard label="Sets"     cur={cur.setCount}      prev={prev.setCount}      fmt={fmtInt} />
-          <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
-          <StatCard label="Avg Session Time"     cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
-          <StatCard label="Distance" cur={cur.runDistanceKm} prev={prev.runDistanceKm} fmt={fmtKm} unit="km" />
-          <StatCard label="Avg Pace" cur={cur.paceSec}       prev={prev.paceSec}       fmt={fmtPace} unit="/km" invertTrend />
-          <StatCard label="Elevation" cur={cur.elevationGainM} prev={prev.elevationGainM} fmt={fmtInt} unit="m" />
-          <StatCard label="Calories" cur={cur.caloriesTotal} prev={prev.caloriesTotal} fmt={fmtInt} unit="kcal" />
-          <StatCard label="Avg Heart Rate"       cur={cur.avgHeartRate} prev={prev.avgHeartRate} fmt={fmtHr} unit="bpm" />
-        </div>
-
-        {/* Cross-month trend (toggle activities / duration / volume / sets / distance) */}
-        <div className="mr-section">
-          <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
-        </div>
-
-        {/* Records broken this month */}
-        <div className="mr-section">
-          <RecordsSection workouts={workouts} month={month} />
-        </div>
-
         {cur.activityCount === 0 ? (
           <div className="mr-empty">No activities logged in {format(month, 'MMMM yyyy')}.</div>
         ) : (
           <>
-            <div className="mr-row">
+            {/* ─────────────── ACTIVITIES (workouts + runs combined) ─────────────── */}
+            <SectionHeader icon={Activity} title="Activities" subtitle="Workouts and runs combined" color="#A78BFA" compact />
+            <div className="mr-grid">
+              <StatCard label="Activities" cur={cur.activityCount} prev={prev.activityCount} fmt={fmtInt} />
+              <StatCard
+                label="Duration"
+                cur={cur.durationMin}
+                prev={prev.durationMin}
+                fmt={fmtDuration}
+                sub={durationBreakdown}
+              />
+              <StatCard label="Avg Session Time" cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
+              <StatCard label="Avg Heart Rate"   cur={cur.avgHeartRate} prev={prev.avgHeartRate} fmt={fmtHr} unit="bpm" />
+            </div>
+            <div className="mr-section">
+              <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
+            </div>
+            <div className="mr-section">
               <WorkoutCalendar workouts={workouts} runs={runs} month={month} />
-              <MuscleRadarChart workouts={monthWorkouts} />
             </div>
-            <div className="mr-row">
-              <MuscleSetCountChart workouts={monthWorkouts} />
-              <MainExercises workouts={monthWorkouts} />
-            </div>
+
+            {/* ─────────────── WORKOUTS (strength training) ─────────────── */}
+            {showWorkouts && (
+              <>
+                <SectionHeader icon={Dumbbell} title="Workouts" subtitle="Strength training" color="#FF2E93" />
+                <div className="mr-grid">
+                  <StatCard label="Volume"     cur={curVol}        prev={prevVol}        fmt={fmtVolume} unit={unit} />
+                  <StatCard label="Total Reps" cur={cur.repsTotal} prev={prev.repsTotal} fmt={fmtInt} />
+                  <StatCard label="Sets"       cur={cur.setCount}  prev={prev.setCount}  fmt={fmtInt} />
+                  <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
+                </div>
+                {monthWorkouts.length > 0 ? (
+                  <>
+                    <div className="mr-row">
+                      <MuscleRadarChart workouts={monthWorkouts} />
+                      <MuscleSetCountChart workouts={monthWorkouts} />
+                    </div>
+                    <div className="mr-section">
+                      <MainExercises workouts={monthWorkouts} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="mr-empty">No workouts logged in {format(month, 'MMMM yyyy')}.</div>
+                )}
+                <div className="mr-section">
+                  <RecordsSection workouts={workouts} month={month} />
+                </div>
+              </>
+            )}
+
+            {/* ─────────────── RUNS (running) ─────────────── */}
+            {showRuns && (
+              <>
+                <SectionHeader icon={Footprints} title="Runs" subtitle="Running" color="#4ADE80" />
+                <div className="mr-grid">
+                  <StatCard label="Distance"  cur={cur.runDistanceKm}  prev={prev.runDistanceKm}  fmt={fmtKm} unit="km" />
+                  <StatCard label="Avg Pace"  cur={cur.paceSec}        prev={prev.paceSec}        fmt={fmtPace} unit="/km" invertTrend />
+                  <StatCard label="Elevation" cur={cur.elevationGainM} prev={prev.elevationGainM} fmt={fmtInt} unit="m" />
+                  <StatCard label="Calories"  cur={cur.caloriesTotal}  prev={prev.caloriesTotal}  fmt={fmtInt} unit="kcal" />
+                </div>
+                <div className="mr-section">
+                  <MonthRunList runs={monthRuns} />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

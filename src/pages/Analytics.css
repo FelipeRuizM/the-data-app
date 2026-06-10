@@ -118,6 +118,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  align-items: start;
 }
 
 /* Let grid items shrink below their charts' intrinsic width so wide charts
@@ -414,68 +415,8 @@
 }
 
 /* ── Dynamic Metric Chart pills ────────────────────────────────── */
-
-.dmc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-shrink: 0;
-}
-
-.dmc-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.dmc-pills {
-  display: flex;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 3px;
-}
-
-.dmc-pill {
-  background: transparent;
-  border: none;
-  border-radius: 7px;
-  padding: 4px 11px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.dmc-pill:hover {
-  color: var(--text-primary);
-  background: var(--glass-hover-bg);
-}
-
-.dmc-pill--active {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--pill-color, var(--accent-pink-main));
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.06);
-}
-
-.dmc-empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-}
+/* Moved to components/analytics/ChartPills.css so the styles travel with
+   the chart components onto any page (e.g. Monthly Reports), not just here. */
 
 /* ── Calendar + Muscle Split row ───────────────────────────────── */
 

@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ExercisesProvider } from './context/ExercisesContext';
 import { GymsProvider } from './context/GymsContext';
 import { PeopleProvider } from './context/PeopleContext';
+import { FeaturedProvider } from './context/FeaturedContext';
 import App from './App.tsx';
 import './index.css';
 
@@ -16,9 +17,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ExercisesProvider>
           <GymsProvider>
             <PeopleProvider>
-              <SettingsProvider>
-                <App />
-              </SettingsProvider>
+              <FeaturedProvider>
+                <SettingsProvider>
+                  <App />
+                </SettingsProvider>
+              </FeaturedProvider>
             </PeopleProvider>
           </GymsProvider>
         </ExercisesProvider>

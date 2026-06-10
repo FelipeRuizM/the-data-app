@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { subDays, subYears, startOfWeek, subWeeks, format } from 'date-fns';
-import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, Activity, Dumbbell, Footprints } from 'lucide-react';
 import { DynamicMetricChart } from '../components/analytics/DynamicMetricChart';
 import { FrequencyChart } from '../components/analytics/FrequencyChart';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
@@ -9,6 +9,7 @@ import { MuscleRadarChart } from '../components/analytics/MuscleRadarChart';
 import { MainExercises } from '../components/analytics/MainExercises';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
 import { HeartRateChart } from '../components/analytics/HeartRateChart';
+import { SectionHeader } from '../components/common/SectionHeader';
 import { formatDuration } from '../utils/runFormat';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
@@ -122,16 +123,6 @@ const ExercisePicker: React.FC<{
 
 export const Analytics: React.FC<Props> = ({ workouts }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [timeRange, setTimeRange]   = useState<TimeRange>('90d');
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters]       = useState<ChartFilters>({
-    categories: [],
-    muscleGroup: '',
-    exercise: '',
-  });
-  const { unit } = useSettings();
-  const { getMuscleGroup } = useExercises();
-  const { runs } = useRuns();
 
   // ── Unique exercise list for the picker ──────────────────────────────────
   const uniqueExercises = useMemo<string[]>(() => {
@@ -139,38 +130,45 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
     return Array.from(s).sort();
   }, [workouts]);
 
-  // ── Catch incoming deep-links from Trophy Room ───────────────────────────
-  // e.g. /analytics?exercise=Bench+Press&timeframe=all
-  useEffect(() => {
-    const incomingExercise  = searchParams.get('exercise');
-    const incomingTimeframe = searchParams.get('timeframe');
-    if (!incomingExercise && !incomingTimeframe) return;
-
-    if (incomingTimeframe) {
-      const normalized = incomingTimeframe.toLowerCase();
-      const match = TIME_RANGES.find(t => t.key.toLowerCase() === normalized);
-      if (match) setTimeRange(match.key);
+  // ── Initial state, seeded from incoming deep-links from Trophy Room ───────
+  // e.g. /analytics?exercise=Bench+Press&timeframe=all — derived once on mount
+  // so we never need to push URL params into state via an effect.
+  const [timeRange, setTimeRange] = useState<TimeRange>(() => {
+    const incoming = searchParams.get('timeframe');
+    if (incoming) {
+      const match = TIME_RANGES.find(t => t.key.toLowerCase() === incoming.toLowerCase());
+      if (match) return match.key;
     }
-
-    if (incomingExercise) {
-      // Try to match against the actual exercise catalog so the chart picker
-      // (which compares titles strictly) locks onto a real entry.
+    return '90d';
+  });
+  const [filters, setFilters] = useState<ChartFilters>(() => {
+    const incoming = searchParams.get('exercise');
+    if (incoming) {
+      // Match against the actual exercise catalog so the chart picker (which
+      // compares titles strictly) locks onto a real entry.
       const exactMatch =
-        uniqueExercises.find(e => e.toLowerCase() === incomingExercise.toLowerCase()) ??
-        uniqueExercises.find(e => e.toLowerCase().includes(incomingExercise.toLowerCase())) ??
-        incomingExercise;
-
-      setFilters(f => ({ ...f, exercise: exactMatch, muscleGroup: '' }));
-      setFiltersOpen(true);
+        uniqueExercises.find(e => e.toLowerCase() === incoming.toLowerCase()) ??
+        uniqueExercises.find(e => e.toLowerCase().includes(incoming.toLowerCase())) ??
+        incoming;
+      return { categories: [], muscleGroup: '', exercise: exactMatch };
     }
+    return { categories: [], muscleGroup: '', exercise: '' };
+  });
+  const [filtersOpen, setFiltersOpen] = useState(() => !!searchParams.get('exercise'));
+  const { unit } = useSettings();
+  const { getMuscleGroup } = useExercises();
+  const { runs } = useRuns();
 
-    // Consume the params so a later manual filter change / refresh doesn't
-    // keep re-applying them.
+  // Consume the deep-link params (now applied to initial state above) so a
+  // later manual filter change / refresh doesn't keep re-applying them. This
+  // only touches the URL — no React state — so it can't cascade renders.
+  useEffect(() => {
+    if (!searchParams.get('exercise') && !searchParams.get('timeframe')) return;
     const next = new URLSearchParams(searchParams);
     next.delete('exercise');
     next.delete('timeframe');
     setSearchParams(next, { replace: true });
-  }, [searchParams, uniqueExercises, setSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   // ── Date-filtered slice ──────────────────────────────────────────────────
   const rangeStart = useMemo(() => getDateCutoff(timeRange), [timeRange]);
@@ -367,7 +365,8 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         </div>
       )}
 
-      {/* ── Key Metrics ────────────────────────────────────────── */}
+      {/* ═══════════ ACTIVITIES (workouts + runs combined) ═══════════ */}
+      <SectionHeader icon={Activity} title="Activities" subtitle="Workouts and runs combined" color="#A78BFA" compact />
       <div className="analytics-metrics-row">
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Total Activities</span>
@@ -376,31 +375,6 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Total Time</span>
           <span className="metric-value">{fmtDuration(overall.minutes)}</span>
-        </div>
-        <div className="analytics-metric-card glass-panel">
-          <span className="metric-label">Total Volume</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span className="metric-value">{fmtVolume(metrics.totalVolume)}</span>
-            <span className="metric-unit">{unit.toUpperCase()}</span>
-          </div>
-        </div>
-        <div className="analytics-metric-card glass-panel">
-          <span className="metric-label">Avg Reps / Set</span>
-          <span className="metric-value">{metrics.avgReps}</span>
-        </div>
-        <div className="analytics-metric-card glass-panel">
-          <span className="metric-label">Total Distance</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span className="metric-value">{runStats.totalKm.toFixed(1)}</span>
-            <span className="metric-unit">KM</span>
-          </div>
-        </div>
-        <div className="analytics-metric-card glass-panel">
-          <span className="metric-label">Avg Pace</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span className="metric-value">{runStats.paceSec > 0 ? formatDuration(runStats.paceSec) : '—'}</span>
-            {runStats.paceSec > 0 && <span className="metric-unit">/KM</span>}
-          </div>
         </div>
         <div className="analytics-metric-card glass-panel">
           <span className="metric-label">Avg Heart Rate</span>
@@ -420,17 +394,37 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
         </div>
       </div>
 
-      {/* ── Calendar + Muscle Split (hidden when isolating a single exercise) ── */}
+      {/* Calendar + heart rate (both span workouts and runs); hidden when isolating */}
       {!filters.exercise && (
         <div className="analytics-calendar-row">
           <WorkoutCalendar workouts={workouts} runs={runs} />
-          <MuscleRadarChart workouts={filteredWorkouts} />
+          <HeartRateChart workouts={filteredWorkouts} runs={rangeRuns} />
         </div>
       )}
+      <FrequencyChart
+        workouts={filteredWorkouts}
+        runs={filters.exercise ? [] : rangeRuns}
+        fillGaps
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+      />
 
-      {/* ── Charts Grid ────────────────────────────────────────── */}
-      <div className="analytics-charts-grid">
-        {/* Workouts and runs get their own weekly graph for accurate per-type data */}
+      {/* ═══════════ WORKOUTS (strength training) ═══════════ */}
+      <SectionHeader icon={Dumbbell} title="Workouts" subtitle="Strength training" color="#FF2E93" />
+      <div className="analytics-metrics-row">
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Total Volume</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="metric-value">{fmtVolume(metrics.totalVolume)}</span>
+            <span className="metric-unit">{unit.toUpperCase()}</span>
+          </div>
+        </div>
+        <div className="analytics-metric-card glass-panel">
+          <span className="metric-label">Avg Reps / Set</span>
+          <span className="metric-value">{metrics.avgReps}</span>
+        </div>
+      </div>
+      {filters.exercise ? (
         <DynamicMetricChart
           title="Weekly Workouts"
           metrics={['volume', 'reps', 'sets', 'duration']}
@@ -439,7 +433,42 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
         />
-        {!filters.exercise && (
+      ) : (
+        <div className="analytics-charts-grid">
+          <DynamicMetricChart
+            title="Weekly Workouts"
+            metrics={['volume', 'reps', 'sets', 'duration']}
+            workouts={filteredWorkouts}
+            fillGaps
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+          />
+          <MuscleRadarChart workouts={filteredWorkouts} />
+          <MuscleSetCountChart workouts={filteredWorkouts} />
+          <MainExercises workouts={filteredWorkouts} />
+        </div>
+      )}
+
+      {/* ═══════════ RUNS (running) — not exercise-filterable ═══════════ */}
+      {!filters.exercise && (
+        <>
+          <SectionHeader icon={Footprints} title="Runs" subtitle="Running" color="#4ADE80" />
+          <div className="analytics-metrics-row">
+            <div className="analytics-metric-card glass-panel">
+              <span className="metric-label">Total Distance</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span className="metric-value">{runStats.totalKm.toFixed(1)}</span>
+                <span className="metric-unit">KM</span>
+              </div>
+            </div>
+            <div className="analytics-metric-card glass-panel">
+              <span className="metric-label">Avg Pace</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span className="metric-value">{runStats.paceSec > 0 ? formatDuration(runStats.paceSec) : '—'}</span>
+                {runStats.paceSec > 0 && <span className="metric-unit">/KM</span>}
+              </div>
+            </div>
+          </div>
           <DynamicMetricChart
             title="Weekly Runs"
             metrics={['distance', 'duration', 'pace']}
@@ -449,18 +478,8 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
           />
-        )}
-        <FrequencyChart
-          workouts={filteredWorkouts}
-          runs={filters.exercise ? [] : rangeRuns}
-          fillGaps
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
-        />
-        {!filters.exercise && <HeartRateChart workouts={filteredWorkouts} runs={rangeRuns} />}
-        {!filters.exercise && <MainExercises workouts={filteredWorkouts} />}
-        {!filters.exercise && <MuscleSetCountChart workouts={filteredWorkouts} />}
-      </div>
+        </>
+      )}
 
     </div>
   );

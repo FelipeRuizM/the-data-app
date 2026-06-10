@@ -27,12 +27,32 @@ export interface Run {
   difficulty: number;
 }
 
+// Raw Realtime DB document shape (snake_case, as written by the import script).
+interface RawRunDoc {
+  title?: string;
+  type?: string;
+  start_time?: string;
+  distance_km?: number | string;
+  duration_seconds?: number | string;
+  pace?: string;
+  elevation_gain_m?: number | string;
+  max_elevation_m?: number | string;
+  steps?: number | string;
+  description?: string;
+  location?: string;
+  avg_heart_rate?: number | string;
+  calories?: number | string;
+  people?: string[];
+  difficulty?: number | string;
+}
+type RawRuns = Record<string, RawRunDoc> | RawRunDoc[] | null;
+
 const parseStartTime = (raw: unknown): Date => {
   const str = String(raw ?? '');
   try {
     const parsed = parse(str, 'd MMM yyyy, HH:mm', new Date());
     if (!isNaN(parsed.getTime())) return parsed;
-  } catch (e) { /* fall through */ }
+  } catch { /* fall through */ }
   const fallback = new Date(str);
   return isNaN(fallback.getTime()) ? new Date() : fallback;
 };
@@ -56,20 +76,20 @@ export const useRuns = () => {
     const unsubscribe = onValue(
       runsRef,
       (snapshot) => {
-        const data = snapshot.val();
+        const data = snapshot.val() as RawRuns;
         if (!data) {
           setRuns([]);
           setLoading(false);
           return;
         }
 
-        const entries = Array.isArray(data)
-          ? data.map((v, i) => [i.toString(), v] as [string, any])
+        const entries: [string, RawRunDoc][] = Array.isArray(data)
+          ? data.map((v, i) => [i.toString(), v])
           : Object.entries(data);
 
         const parsed: Run[] = entries
           .filter(([, item]) => item)
-          .map(([key, item]: [string, any]) => ({
+          .map(([key, item]) => ({
             id: key,
             title: item.title || '',
             type: (item.type as RunType) || 'Other',

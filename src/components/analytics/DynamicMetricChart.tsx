@@ -7,6 +7,7 @@ import { Card } from '../common/Card';
 import { useSettings } from '../../context/SettingsContext';
 import { getWeeklyMetric, fillWeeklyGaps, type MetricType } from '../../utils/workoutUtils';
 import type { TaggedWorkout } from '../../hooks/useWorkouts';
+import './ChartPills.css';
 
 interface Props {
   workouts: TaggedWorkout[];

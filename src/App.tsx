@@ -1,18 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
-import { Dashboard } from './pages/Dashboard';
-import { Settings } from './pages/Settings';
-import { Workouts } from './pages/Workouts';
-import { AddWorkout } from './pages/AddWorkout';
-import { AddRun } from './pages/AddRun';
-import { PersonalRecords } from './pages/PersonalRecords';
-import { ExerciseDetail } from './pages/ExerciseDetail';
-import { Analytics } from './pages/Analytics';
-import { MonthlyReports } from './pages/MonthlyReports';
-import { Running } from './pages/Running';
-import { Login } from './pages/Login';
 import { useWorkouts } from './hooks/useWorkouts';
+
+// Route components are lazy-loaded so the initial bundle is just the app shell.
+// Named exports need to be mapped onto `default` for React.lazy.
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const Workouts = lazy(() => import('./pages/Workouts').then(m => ({ default: m.Workouts })));
+const AddWorkout = lazy(() => import('./pages/AddWorkout').then(m => ({ default: m.AddWorkout })));
+const AddRun = lazy(() => import('./pages/AddRun').then(m => ({ default: m.AddRun })));
+const PersonalRecords = lazy(() => import('./pages/PersonalRecords').then(m => ({ default: m.PersonalRecords })));
+const ExerciseDetail = lazy(() => import('./pages/ExerciseDetail').then(m => ({ default: m.ExerciseDetail })));
+const Analytics = lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
+const MonthlyReports = lazy(() => import('./pages/MonthlyReports').then(m => ({ default: m.MonthlyReports })));
+const Running = lazy(() => import('./pages/Running').then(m => ({ default: m.Running })));
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 import { useAuth } from './context/AuthContext';
 import { useExercises } from './context/ExercisesContext';
 import { seedExercisesFromWorkouts } from './utils/exerciseSeed';
@@ -49,20 +52,22 @@ function AuthedApp() {
   if (loading || exercisesLoading) return <LoadingScreen label="Synching Backend..." />;
 
   return (
-    <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<Dashboard workouts={workouts} />} />
-        <Route path="workouts" element={<Workouts workouts={workouts} />} />
-        <Route path="add/workout" element={<AddWorkout workouts={workouts} />} />
-        <Route path="add/run" element={<AddRun />} />
-        <Route path="records" element={<PersonalRecords workouts={workouts} />} />
-        <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
-        <Route path="analytics" element={<Analytics workouts={workouts} />} />
-        <Route path="monthly" element={<MonthlyReports workouts={workouts} />} />
-        <Route path="running" element={<Running />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={<LoadingScreen label="Loading..." />}>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Dashboard workouts={workouts} />} />
+          <Route path="workouts" element={<Workouts workouts={workouts} />} />
+          <Route path="add/workout" element={<AddWorkout workouts={workouts} />} />
+          <Route path="add/run" element={<AddRun />} />
+          <Route path="records" element={<PersonalRecords workouts={workouts} />} />
+          <Route path="exercises/:name" element={<ExerciseDetail workouts={workouts} />} />
+          <Route path="analytics" element={<Analytics workouts={workouts} />} />
+          <Route path="monthly" element={<MonthlyReports workouts={workouts} />} />
+          <Route path="running" element={<Running />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -70,7 +75,13 @@ function App() {
   const { user, loading, isGuest } = useAuth();
 
   if (loading) return <LoadingScreen label="Loading..." />;
-  if (!user && !isGuest) return <Login />;
+  if (!user && !isGuest) {
+    return (
+      <Suspense fallback={<LoadingScreen label="Loading..." />}>
+        <Login />
+      </Suspense>
+    );
+  }
 
   return <AuthedApp />;
 }

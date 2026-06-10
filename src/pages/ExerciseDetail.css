@@ -107,9 +107,45 @@
 
 .exd-stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+}
+
+/* ── Title row + feature/pin toggle ────────────────────────────── */
+
+.exd-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exd-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.exd-pin:hover {
+  color: var(--text-primary);
+  background: var(--glass-hover-bg);
+}
+
+.exd-pin--active {
+  color: var(--accent-pink-main);
+  border-color: rgba(255, 46, 147, 0.4);
+  background: rgba(255, 46, 147, 0.12);
 }
 
 .exd-stat {

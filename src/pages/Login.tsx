@@ -48,8 +48,9 @@ export const Login: React.FC = () => {
     setBusy(true);
     try {
       await signIn(email.trim(), password);
-    } catch (err: any) {
-      setError(friendlyError(err?.code ?? ''));
+    } catch (err) {
+      const code = err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
+      setError(friendlyError(code));
       setBusy(false);
     }
   };
