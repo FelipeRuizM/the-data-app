@@ -367,16 +367,16 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
               <StatCard label="Avg Session Time" cur={curAvgDur} prev={prevAvgDur} fmt={fmtDuration} />
               <StatCard label="Avg Heart Rate"   cur={cur.avgHeartRate} prev={prev.avgHeartRate} fmt={fmtHr} unit="bpm" />
             </div>
-            <div className="mr-section">
+            {/* Calendar + activities trend side by side on desktop */}
+            <div className="mr-calendar-row">
+              <WorkoutCalendar workouts={workouts} runs={runs} month={month} />
               <MonthlyTrendChart
                 series={series}
                 selectedMonthKey={monthKey}
                 title="Monthly Activities"
                 metrics={['activities']}
+                chart="line"
               />
-            </div>
-            <div className="mr-section">
-              <WorkoutCalendar workouts={workouts} runs={runs} month={month} />
             </div>
 
             {/* ─────────────── WORKOUTS (strength training) ─────────────── */}
