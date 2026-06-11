@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Trophy, Lock, Activity, Dumbbell, Footprints, HeartPulse, Flame } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Trophy, Lock, Activity, Dumbbell, Footprints, HeartPulse, Flame } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, format, isSameMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
@@ -95,6 +95,7 @@ const recordValueKg = (a: PRAchievement, type: PRType): number =>
 const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ workouts, month }) => {
   const { unit } = useSettings();
   const multiplier = unit === 'lbs' ? 2.20462 : 1;
+  const [isOpen, setIsOpen] = useState(false);
 
   const summary = useMemo(() => {
     const monthPRs = computePRAchievements(workouts).filter(a => isSameMonth(a.date, month));
@@ -165,7 +166,14 @@ const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ 
 
   return (
     <Card>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: summary.total > 0 ? '20px' : '0' }}>
+      {/* Header — click to expand the breakdown */}
+      <div
+        onClick={() => summary.total > 0 && setIsOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          cursor: summary.total > 0 ? 'pointer' : 'default',
+        }}
+      >
         <div style={{
           width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
           background: 'rgba(255,196,0,0.12)', border: '1px solid rgba(255,196,0,0.35)',
@@ -181,10 +189,17 @@ const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ 
               : 'No personal records broken this month'}
           </span>
         </div>
+        {summary.total > 0 && (
+          <span style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex' }}>
+            {isOpen
+              ? <ChevronUp size={18} color="var(--accent-pink-main)" />
+              : <ChevronDown size={18} color="var(--text-muted)" />}
+          </span>
+        )}
       </div>
 
-      {summary.total > 0 && (
-        <>
+      {isOpen && summary.total > 0 && (
+        <div style={{ marginTop: '20px' }}>
           {/* Totals by type */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
             {RECORD_ORDER.filter(k => summary.totals[k] > 0).map(k => typeChip(k, summary.totals[k]))}
@@ -208,7 +223,7 @@ const RecordsSection: React.FC<{ workouts: TaggedWorkout[]; month: Date }> = ({ 
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </Card>
   );
@@ -353,7 +368,12 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
               <StatCard label="Avg Heart Rate"   cur={cur.avgHeartRate} prev={prev.avgHeartRate} fmt={fmtHr} unit="bpm" />
             </div>
             <div className="mr-section">
-              <MonthlyTrendChart series={series} selectedMonthKey={monthKey} />
+              <MonthlyTrendChart
+                series={series}
+                selectedMonthKey={monthKey}
+                title="Monthly Activities"
+                metrics={['activities']}
+              />
             </div>
             <div className="mr-section">
               <WorkoutCalendar workouts={workouts} runs={runs} month={month} />
@@ -368,6 +388,14 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
                   <StatCard label="Total Reps" cur={cur.repsTotal} prev={prev.repsTotal} fmt={fmtInt} />
                   <StatCard label="Sets"       cur={cur.setCount}  prev={prev.setCount}  fmt={fmtInt} />
                   <StatCard label="Avg Volume / Session" cur={curAvgVol} prev={prevAvgVol} fmt={fmtVolume} unit={unit} />
+                </div>
+                <div className="mr-section">
+                  <MonthlyTrendChart
+                    series={series}
+                    selectedMonthKey={monthKey}
+                    title="Monthly Workouts"
+                    metrics={['workoutDuration', 'volume', 'sets']}
+                  />
                 </div>
                 {monthWorkouts.length > 0 ? (
                   <>
@@ -397,6 +425,14 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
                   <StatCard label="Avg Pace"  cur={cur.paceSec}        prev={prev.paceSec}        fmt={fmtPace} unit="/km" invertTrend />
                   <StatCard label="Elevation" cur={cur.elevationGainM} prev={prev.elevationGainM} fmt={fmtInt} unit="m" />
                   <StatCard label="Calories"  cur={cur.caloriesTotal}  prev={prev.caloriesTotal}  fmt={fmtInt} unit="kcal" />
+                </div>
+                <div className="mr-section">
+                  <MonthlyTrendChart
+                    series={series}
+                    selectedMonthKey={monthKey}
+                    title="Monthly Runs"
+                    metrics={['runDuration', 'distance']}
+                  />
                 </div>
                 <div className="mr-section">
                   <MonthRunList runs={monthRuns} />

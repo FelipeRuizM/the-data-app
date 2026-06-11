@@ -500,6 +500,8 @@ export interface MonthlyPoint {
   runCount: number;       // runs in the month
   activityCount: number;  // workoutCount + runCount
   durationMin: number;    // combined session + run durations, in minutes
+  workoutDurationMin: number; // lifting only
+  runDurationMin: number;     // running only
   volumeKg: number;       // Σ weight×reps across every set
   setCount: number;       // total sets logged
   runDistanceKm: number;  // Σ run distance
@@ -555,15 +557,17 @@ export function getMonthlySeries(
 
   return Array.from(map.entries())
     .map(([monthKey, e]) => {
-      let durationSec = e.runDurSec;
-      e.durSec.forEach(s => { durationSec += s; });
+      let workoutDurSec = 0;
+      e.durSec.forEach(s => { workoutDurSec += s; });
       return {
         monthKey,
         label: format(e.date, 'MMM yy'),
         workoutCount: e.sessions.size,
         runCount: e.runCount,
         activityCount: e.sessions.size + e.runCount,
-        durationMin: Math.round(durationSec / 60),
+        durationMin: Math.round((workoutDurSec + e.runDurSec) / 60),
+        workoutDurationMin: Math.round(workoutDurSec / 60),
+        runDurationMin: Math.round(e.runDurSec / 60),
         volumeKg: e.volumeKg,
         setCount: e.setCount,
         runDistanceKm: Math.round(e.runDistanceKm * 100) / 100,
