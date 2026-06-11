@@ -4,9 +4,10 @@ import { ExerciseManager } from '../components/settings/ExerciseManager';
 import { GymManager } from '../components/settings/GymManager';
 import { PeopleManager } from '../components/settings/PeopleManager';
 import { FeaturedManager } from '../components/settings/FeaturedManager';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
-import { pageTitleStyle } from '../styles/typography';
+import { PageHeader } from '../components/common/PageHeader';
 
 export const Settings: React.FC = () => {
   const { unit, toggleUnit } = useSettings();
@@ -25,8 +26,8 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '0 32px', animation: 'fadeIn 0.5s ease-out' }}>
-      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Settings</h2>
+    <div style={{ padding: '24px 32px 40px', animation: 'fadeIn 0.5s ease-out' }}>
+      <PageHeader icon={SettingsIcon} title="Settings" />
 
       <Card style={{ maxWidth: '600px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

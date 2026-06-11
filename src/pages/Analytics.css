@@ -3,7 +3,8 @@
    ══════════════════════════════════════════════════════════════════ */
 
 .analytics-page {
-  padding: 0 32px 40px;
+  /* 24px top padding — same header offset as every other page */
+  padding: 24px 32px 40px;
 }
 
 /* ── Header ────────────────────────────────────────────────────── */
@@ -15,15 +16,6 @@
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 28px;
-}
-
-.analytics-title {
-  margin: 0;
-  letter-spacing: -0.02em;
-  font-family: 'Outfit', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
 }
 
 /* ── Time Range Selector ───────────────────────────────────────── */
@@ -455,7 +447,7 @@
 
 @media (max-width: 768px) {
   .analytics-page {
-    padding: 0 16px 32px;
+    padding: 16px 16px 32px;
   }
 
   .analytics-header {

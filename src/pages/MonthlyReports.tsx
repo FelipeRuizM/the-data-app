@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Trophy, Lock, Activity, Dumbbell, Footprints, HeartPulse, Flame } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Trophy, Lock, Activity, Dumbbell, Footprints, HeartPulse, Flame } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, format, isSameMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
@@ -14,6 +14,7 @@ import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart
 import { MainExercises } from '../components/analytics/MainExercises';
 import { MonthlyTrendChart } from '../components/analytics/MonthlyTrendChart';
 import { SectionHeader } from '../components/common/SectionHeader';
+import { PageHeader } from '../components/common/PageHeader';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 import './MonthlyReports.css';
 
@@ -309,7 +310,7 @@ export const MonthlyReports: React.FC<Props> = ({ workouts }) => {
   return (
     <div className="mr-page" style={{ animation: 'fadeIn 0.5s ease-out' }}>
       <div className="mr-header">
-        <h2 className="mr-title">Monthly Reports</h2>
+        <PageHeader icon={CalendarDays} title="Monthly Reports" style={{ marginBottom: 0 }} />
         <div className="mr-month-nav">
           <button className="mr-nav-btn" onClick={() => setMonth(m => subMonths(m, 1))} aria-label="Previous month">
             <ChevronLeft size={18} />

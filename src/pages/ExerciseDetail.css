@@ -40,7 +40,8 @@
   margin: 0;
   letter-spacing: -0.02em;
   font-family: 'Outfit', sans-serif;
-  font-size: 26px;
+  /* matches the shared pageTitleStyle scale (24px / 700) */
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
 }

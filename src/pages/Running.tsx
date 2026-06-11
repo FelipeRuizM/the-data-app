@@ -7,8 +7,9 @@ import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useRuns, type RunType } from '../hooks/useRuns';
 import { Card } from '../components/common/Card';
+import { PageHeader } from '../components/common/PageHeader';
 import { labelStyle } from '../styles/formStyles';
-import { pageTitleStyle, sectionTitleStyle, statValueStyle } from '../styles/typography';
+import { sectionTitleStyle, statValueStyle } from '../styles/typography';
 import { formatDuration, runDifficulty } from '../utils/runFormat';
 
 const TYPE_COLORS: Record<RunType, string> = {
@@ -51,7 +52,7 @@ export const Running: React.FC = () => {
         boxSizing: 'border-box',
       }}
     >
-      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Running</h2>
+      <PageHeader icon={Footprints} title="Running" />
 
       {/* Stats */}
       <div

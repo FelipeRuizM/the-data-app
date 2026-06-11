@@ -3,7 +3,8 @@
    ══════════════════════════════════════════════════════════════════ */
 
 .mr-page {
-  padding: 0 32px 40px;
+  /* 24px top padding — same header offset as every other page */
+  padding: 24px 32px 40px;
 }
 
 /* ── Current-month lock (blur until the month ends) ───────────────── */
@@ -100,15 +101,6 @@
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 28px;
-}
-
-.mr-title {
-  margin: 0;
-  letter-spacing: -0.02em;
-  font-family: 'Outfit', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
 }
 
 .mr-month-nav {
@@ -374,7 +366,7 @@
 
 @media (max-width: 768px) {
   .mr-page {
-    padding: 0 16px 32px;
+    padding: 16px 16px 32px;
   }
 
   .mr-header {

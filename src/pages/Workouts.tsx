@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/common/Card';
 import { useSettings } from '../context/SettingsContext';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Pencil, Trophy, MapPin, HeartPulse, Users } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, Pencil, Trophy, MapPin, HeartPulse, Users } from 'lucide-react';
 import { ref, update } from 'firebase/database';
 import { realtimeDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -19,7 +19,8 @@ import {
 } from '../utils/workoutDisplay';
 import { computeSetPRs, setPRKey, type SetPR } from '../utils/prEngine';
 import { labelStyle } from '../styles/formStyles';
-import { pageTitleStyle, cardTitleStyle, bodyTextStyle, metaTextStyle, statValueStyle } from '../styles/typography';
+import { sectionTitleStyle, cardTitleStyle, bodyTextStyle, metaTextStyle, statValueStyle } from '../styles/typography';
+import { PageHeader } from '../components/common/PageHeader';
 import type { TaggedWorkout } from '../hooks/useWorkouts';
 
 const fmtDuration = (min: number) => {
@@ -113,7 +114,7 @@ const WorkoutCard: React.FC<{
           paddingBottom: isOpen ? '14px' : '0',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', minWidth: 0 }}>
-            <CatIcon size={16} color={catColor} style={{ flexShrink: 0 }} />
+            <CatIcon size={20} color={catColor} style={{ flexShrink: 0 }} />
             <h3 style={cardTitleStyle}>{session.title || 'Workout'}</h3>
             <span style={{
               fontSize: '11px', fontFamily: 'Inter', fontWeight: 700,
@@ -301,6 +302,7 @@ export const Workouts: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) 
 
   return (
     <div style={{ padding: '24px', animation: 'fadeIn 0.5s ease-out', paddingBottom: '64px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <PageHeader icon={Activity} title="Workouts" />
 
       {/* Stats */}
       <div
@@ -308,7 +310,7 @@ export const Workouts: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) 
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '16px',
-          marginBottom: '32px',
+          marginBottom: '24px',
         }}
       >
         <Card>
@@ -325,9 +327,9 @@ export const Workouts: React.FC<{ workouts: TaggedWorkout[] }> = ({ workouts }) 
         </Card>
       </div>
 
-      <h2 style={{ ...pageTitleStyle, marginBottom: '24px' }}>Workout History</h2>
+      <h3 style={{ ...sectionTitleStyle, marginBottom: '24px' }}>History</h3>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
         {sessions.map(session => (
           <WorkoutCard
             key={session.startTime.getTime().toString()}

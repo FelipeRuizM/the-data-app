@@ -12,6 +12,13 @@ on every push to `main`.
 
 ## UI patterns
 
+**Page header** — every page except the Dashboard opens with the shared `PageHeader`
+component (`src/components/common/PageHeader.tsx`): a 28px pink-accent icon + the page
+title, 24px below it the content. Use the tab's sidebar icon (Activity for Workouts,
+Footprints for Running, Trophy for Records, BarChart3 for Analytics, CalendarDays for
+Monthly, Settings for Settings). Pages also share a 24px top padding so headers line up
+across tabs.
+
 **Typography scale** — defined in `src/styles/typography.ts`; always import from there
 instead of hand-rolling font styles. The hierarchy every page follows:
 
@@ -24,9 +31,11 @@ instead of hand-rolling font styles. The hierarchy every page follows:
 | Meta text | Inter 13px, `--text-muted` | dates, fine print |
 | Stat value | Inter 32px/bold | big numbers in stat cards |
 
-Card layout pattern for history items (see Run + Workout cards): small inline icon (16px) +
-title + chips on one row, date on the right, then one compact metrics row underneath.
-Form styles live in `src/styles/formStyles.ts`.
+Card layout pattern for history items (see Run + Workout cards): small inline icon
+(16px Lucide; the custom category icons render at 20px to match visual weight) + title +
+chips on one row, date on the right, then one compact metrics row underneath. History
+lists stack with a 12px gap under an "History" `h3`. Form styles live in
+`src/styles/formStyles.ts`.
 
 **Dates: simpler is better.** Never show verbose dates ("Wednesday, Jun 10th 2026 - 4:57 PM").
 - History items: `d MMM, HH:mm` → "10 Jun, 16:57", muted, on the right

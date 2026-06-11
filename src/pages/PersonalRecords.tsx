@@ -8,6 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
 import { useFeatured } from '../context/FeaturedContext';
 import { format } from 'date-fns';
+import { PageHeader } from '../components/common/PageHeader';
 import './PersonalRecords.css';
 
 // Muscle-group accent colors — give each card/section a meaningful identity
@@ -233,10 +234,7 @@ export const PersonalRecords: React.FC<{ workouts: TaggedWorkout[] }> = ({ worko
 
   return (
     <div className="pr-container">
-      <div className="pr-header">
-        <Trophy size={32} color="var(--accent-pink-main)" />
-        <h2>Records</h2>
-      </div>
+      <PageHeader icon={Trophy} title="Records" />
 
       <ExerciseSearch exercises={uniqueExercises} />
 

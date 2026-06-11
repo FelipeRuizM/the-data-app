@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { subDays, subYears, startOfWeek, subWeeks, format } from 'date-fns';
-import { SlidersHorizontal, X, ChevronDown, Activity, Dumbbell, Footprints } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, Activity, BarChart3, Dumbbell, Footprints } from 'lucide-react';
 import { DynamicMetricChart } from '../components/analytics/DynamicMetricChart';
 import { FrequencyChart } from '../components/analytics/FrequencyChart';
 import { WorkoutCalendar } from '../components/analytics/WorkoutCalendar';
@@ -10,6 +10,7 @@ import { MainExercises } from '../components/analytics/MainExercises';
 import { MuscleSetCountChart } from '../components/analytics/MuscleSetCountChart';
 import { HeartRateChart } from '../components/analytics/HeartRateChart';
 import { SectionHeader } from '../components/common/SectionHeader';
+import { PageHeader } from '../components/common/PageHeader';
 import { formatDuration } from '../utils/runFormat';
 import { useSettings } from '../context/SettingsContext';
 import { useExercises } from '../context/ExercisesContext';
@@ -276,7 +277,7 @@ export const Analytics: React.FC<Props> = ({ workouts }) => {
 
       {/* ── Header row ─────────────────────────────────────────── */}
       <div className="analytics-header">
-        <h2 className="analytics-title">Analytics</h2>
+        <PageHeader icon={BarChart3} title="Analytics" style={{ marginBottom: 0 }} />
 
         <div className="analytics-header-controls">
           {/* Time range pills */}
